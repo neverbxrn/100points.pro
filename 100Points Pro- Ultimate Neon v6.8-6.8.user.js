@@ -385,6 +385,28 @@
     border-left: 4px solid var(--card-color) !important;
     color: #333 !important;
 }
+
+/* Базовый видимый слой для всех плашек */
+.custom-percent-badge {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 12px;
+    z-index: 10;
+    color: white; /* Цвет текста по умолчанию */
+    min-width: 40px;
+    text-align: center;
+}
+
+/* Белый фон для контурных стилей, чтобы они не были прозрачными на белом */
+.badge-outline, .badge-glass {
+    background: #ffffff !important;
+    color: var(--badge-color, #333) !important;
+}
     `);
 
     function updateThemeClass() {
@@ -614,107 +636,94 @@
     }
 
     function processVisuals(lesson) {
-        const link = lesson.querySelector('a');
-        const lessonId = link?.href.match(/lesson\/(\d+)/)?.[1];
-        const lessonData = cache.get(lessonId);
-        const progressBar = lesson.querySelector('.D0VIa');
+    const link = lesson.querySelector('a');
+    const lessonId = link?.href.match(/lesson\/(\d+)/)?.[1];
+    const lessonData = cache.get(lessonId); // Данные из API
+    const progressBar = lesson.querySelector('.D0VIa');
 
-        const p = progressBar ? (parseInt(progressBar.style.width) || 0) : 0;
-        let finalColor = (settings.barStyle === 'dynamic')
-            ? getSmartColor(p)
-            : (p >= 90 ? '#00D05A' : p > 70 ? '#ADFF2F' : p > 30 ? '#FFA500' : '#FF4747');
+    // 1. Считаем процент из прогресс-бара (он доступен сразу без API)
+    const p = progressBar ? (parseInt(progressBar.style.width) || 0) : 0;
 
-        // --- 1. ГЛОБАЛЬНЫЙ СБРОС ФОРМЫ (Чтобы стили не накладывались) ---
-        const currentClasses = Array.from(lesson.classList);
-        currentClasses.forEach(cls => {
-            if (cls.startsWith('style-')) lesson.classList.remove(cls);
-        });
-        lesson.style.clipPath = '';
-        lesson.style.borderRadius = '';
-        lesson.style.setProperty('--card-color', finalColor);
+    let finalColor = (settings.barStyle === 'dynamic')
+        ? getSmartColor(p)
+        : (p >= 90 ? '#00D05A' : p > 70 ? '#ADFF2F' : p > 30 ? '#FFA500' : '#FF4747');
 
-        if (settings.cardStyle && settings.cardStyle !== 'default') {
-            lesson.classList.add('custom-card-active');
-            lesson.classList.add('style-' + settings.cardStyle);
-        } else {
-            lesson.classList.remove('custom-card-active');
-        }
+    // --- 1. СБРОС КАРТОЧКИ ---
+    const currentClasses = Array.from(lesson.classList);
+    currentClasses.forEach(cls => { if (cls.startsWith('style-')) lesson.classList.remove(cls); });
+    lesson.style.clipPath = '';
+    lesson.style.borderRadius = '';
+    lesson.style.setProperty('--card-color', finalColor);
 
-        // --- 2. ПОДГОТОВКА ПЛАШКИ ---
-        let pbBadge = lesson.querySelector('.custom-percent-badge');
-        if (!pbBadge) {
-            pbBadge = document.createElement('div');
-            pbBadge.className = 'custom-percent-badge';
-            lesson.appendChild(pbBadge);
-        }
+    if (settings.cardStyle && settings.cardStyle !== 'default') {
+        lesson.classList.add('custom-card-active', 'style-' + settings.cardStyle);
+    } else {
+        lesson.classList.remove('custom-card-active');
+    }
 
-        // Сброс стилей плашки
-        const badgeClasses = Array.from(pbBadge.classList);
-        badgeClasses.forEach(cls => {
-            if (cls.startsWith('badge-')) pbBadge.classList.remove(cls);
-        });
-        pbBadge.style.background = '';
-        pbBadge.style.display = 'none'; // Прячем по умолчанию
+    // --- 2. ПОДГОТОВКА ПЛАШКИ ---
+    let pbBadge = lesson.querySelector('.custom-percent-badge');
+    if (!pbBadge) {
+        pbBadge = document.createElement('div');
+        pbBadge.className = 'custom-percent-badge';
+        lesson.appendChild(pbBadge);
+    }
 
-        if (!lessonData) return;
+    pbBadge.className = 'custom-percent-badge';
+    pbBadge.style.background = '';
+    pbBadge.style.color = 'white';
+    pbBadge.style.display = 'none';
 
+    // --- 3. ЛОГИКА ОПРЕДЕЛЕНИЯ КОНТЕНТА ---
+    let badgeText = '';
+    let badgeColor = finalColor;
+    let isUrgent = false;
+
+    // СНАЧАЛА ПРОВЕРЯЕМ ПРОЦЕНТЫ (Работает без API!)
+    if (p > 0) {
+        badgeText = p + '%';
+        badgeColor = finalColor;
+    }
+    // ДЕДЛАЙНЫ (Нуждаются в API)
+    else if (lessonData) {
         const { status, deadline, is_deadline_passed } = lessonData;
-        pbBadge.style.animation = 'badge-appearance 0.5s ease-out forwards';
-
-        // --- 3. ЛОГИКА ОТОБРАЖЕНИЯ (ПРОЦЕНТЫ ИЛИ ДЕДЛАЙН) ---
-
-        // Показываем проценты, если есть прогресс и работа сдана/проверяется
-        if (p > 0 && (status === 'passed' || status === 'checking' || status === 'on_review')) {
-            pbBadge.style.display = 'block';
-            pbBadge.innerText = p + '%';
-
-            if (settings.badgeStyle && settings.badgeStyle !== 'flat') {
-                pbBadge.classList.add('badge-' + settings.badgeStyle);
-                pbBadge.style.setProperty('--badge-color', finalColor);
-            } else {
-                pbBadge.style.background = finalColor;
-            }
-        }
-        // Показываем дедлайн, если работа НЕ сдана и срок еще не вышел
-        else if (!is_deadline_passed && deadline && status !== 'passed' && status !== 'checking') {
+        if (!is_deadline_passed && deadline && status !== 'passed' && status !== 'checking') {
             const parts = deadline.match(/(\d{2})\.(\d{2})\.(\d{4})/);
             if (parts) {
-                const deadlineDate = new Date(`${parts[3]}-${parts[2]}-${parts[1]}T23:59:59`);
-                const diffMs = deadlineDate - new Date();
-
-                if (diffMs > 0) {
-                    pbBadge.style.display = 'block';
-                    const d = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                    const h = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
-
-                    pbBadge.innerText = `${d}д ${h}ч`;
-
-                    const isUrgent = d < 2;
-                    const deadlineColor = isUrgent ? '#FF4747' : '#775AFA';
-
-                    // Добавляем класс мигания если дедлайн близко
-                    if (isUrgent) {
-                        pbBadge.classList.add('deadline-urgent');
-                    } else {
-                        pbBadge.classList.remove('deadline-urgent');
-                    }
-
-                    if (settings.badgeStyle && settings.badgeStyle !== 'flat') {
-                        pbBadge.classList.add('badge-' + settings.badgeStyle);
-                        pbBadge.style.setProperty('--badge-color', deadlineColor);
-                    } else {
-                        pbBadge.style.background = deadlineColor;
-                    }
+                const dDate = new Date(`${parts[3]}-${parts[2]}-${parts[1]}T23:59:59`);
+                const diff = dDate - new Date();
+                if (diff > 0) {
+                    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                    badgeText = `${d}д ${h}ч`;
+                    badgeColor = (d < 2) ? '#FF4747' : '#775AFA';
+                    isUrgent = (d < 2);
                 }
             }
         }
-
-        // --- 4. НЕОН ПРОГРЕСС-БАРА ---
-        if (progressBar) {
-            progressBar.style.setProperty('background-color', finalColor, 'important');
-            progressBar.style.setProperty('box-shadow', `0 0 10px ${finalColor}`, 'important');
-        }
     }
+
+    // --- 4. ОТРИСОВКА ---
+    if (badgeText) {
+        pbBadge.innerText = badgeText;
+        pbBadge.style.display = 'block';
+        pbBadge.style.setProperty('--badge-color', badgeColor);
+
+        if (settings.badgeStyle && settings.badgeStyle !== 'flat') {
+            pbBadge.classList.add('badge-' + settings.badgeStyle);
+        } else {
+            pbBadge.style.background = badgeColor;
+        }
+
+        if (isUrgent) pbBadge.classList.add('deadline-urgent');
+    }
+
+    // --- 5. ПРОГРЕСС-БАР ---
+    if (progressBar) {
+        progressBar.style.setProperty('background-color', finalColor, 'important');
+        progressBar.style.setProperty('box-shadow', `0 0 10px ${finalColor}`, 'important');
+    }
+}
 
     function processStatusLogic(lesson, badge) {
         const link = lesson.querySelector('a');
