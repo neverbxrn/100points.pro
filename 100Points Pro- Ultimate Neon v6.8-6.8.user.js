@@ -9,50 +9,92 @@
 // @grant        GM_addStyle
 // @connect      api.100points.ru
 // @run-at       document-start
+// @require https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js
 // ==/UserScript==
 
 (function() {
     'use strict';
 
+    const cache = {
+        data: JSON.parse(localStorage.getItem('pts_pro_cache_v2') || '{}'),
+        get(id) { return this.data[id]; },
+        set(id, val) {
+            this.data[id] = val;
+            localStorage.setItem('pts_pro_cache_v2', JSON.stringify(this.data));
+        }
+    };
+
     let authToken = null;
-    let cache = new Map();
     let retryCount = new Map();
     let lastUrl = location.href;
 
-   let settings = JSON.parse(localStorage.getItem('100pts_settings')) || {
+    let settings = JSON.parse(localStorage.getItem('100pts_settings')) || {
         cardStyle: 'default',
         badgeStyle: 'flat', // Для плашки
         barStyle: 'default',
         fontStyle: 'default',
         fontSize: 14,
-        cardPadding: 100
+        cardPadding: 100,
+        showCaptureBtn: true, // Одиночная кнопка
+        showMassCaptureBtn: true, // Кнопка "Скачать всё"
+        videoResizer: true,
+        showChatCloseBtn: true
     };
 
     const badgeStyles = [
-    { id: 'flat', name: 'Стандартный' },
-    { id: 'outline', name: 'Контурный неон' },
-    { id: 'glass', name: 'Стеклянный' },
-    { id: 'cyber', name: 'Киберпанк' },
-    { id: 'minimal', name: 'Минимализм' }
-];
+        { id: 'flat', name: 'Стандартный' },
+        { id: 'outline', name: 'Контурный неон' },
+        { id: 'glass', name: 'Стеклянный' },
+        { id: 'cyber', name: 'Киберпанк' },
+        { id: 'minimal', name: 'Минимализм' }
+    ];
 
     const cardStyles = [
-    { id: 'default', name: 'Стандартная' },
-    { id: 'neon-border', name: 'Контурный неон' },
-    { id: 'glass-card', name: 'Стеклянная' },
-    { id: 'cyber-card', name: 'Киберпанк (Светлый)' },
-    { id: 'minimal-card', name: 'Тонкий акцент' },
-    // --- НОВЫЕ 10 СТИЛЕЙ ---
-    { id: 'soft-ocean', name: 'Мягкий океан' },
-    { id: 'paper-sheet', name: 'Лист бумаги' },
-    { id: 'gradient-glow', name: 'Градиентное сияние' },
-    { id: 'shadow-depth', name: 'Глубокая тень' },
-    { id: 'brutalist', name: 'Брутализм' },
-    { id: 'dot-grid', name: 'Точечная сетка' },
-    { id: 'rainbow-edge', name: 'Радужная грань' },
-    { id: 'neo-retro', name: 'Нео-ретро' },
-    { id: 'frosted-mint', name: 'Морозная мята' },
-    { id: 'gold-leaf', name: 'Золотая кайма' }
+        { id: 'default', name: 'Стандартная' },
+        { id: 'neon-border', name: 'Контурный неон' },
+        { id: 'glass-card', name: 'Стеклянная' },
+        { id: 'cyber-card', name: 'Киберпанк (Светлый)' },
+        { id: 'minimal-card', name: 'Тонкий акцент' },
+        // --- НОВЫЕ 10 СТИЛЕЙ ---
+        { id: 'soft-ocean', name: 'Мягкий океан' },
+        { id: 'paper-sheet', name: 'Лист бумаги' },
+        { id: 'gradient-glow', name: 'Градиентное сияние' },
+        { id: 'shadow-depth', name: 'Глубокая тень' },
+        { id: 'brutalist', name: 'Брутализм' },
+        { id: 'dot-grid', name: 'Точечная сетка' },
+        { id: 'rainbow-edge', name: 'Радужная грань' },
+        { id: 'neo-retro', name: 'Нео-ретро' },
+        { id: 'frosted-mint', name: 'Морозная мята' },
+        { id: 'gold-leaf', name: 'Золотая кайма' },
+        { id: 'soft-clay', name: 'Мягкая глина (Neumorphism)' },
+{ id: 'aqua-glass', name: 'Морское стекло' },
+{ id: 'ceramic-white', name: 'Белая керамика' },
+{ id: 'blueprint', name: 'Чертеж' },
+{ id: 'industrial-mesh', name: 'Промышленная сетка' },
+{ id: 'pulp-fiction', name: 'Газетная вырезка' },
+{ id: 'sweet-marshmallow', name: 'Зефирный градиент' },
+{ id: 'stamped-card', name: 'Штампованный картон' },
+{ id: 'modern-sketch', name: 'Эскиз карандашом' },
+{ id: 'iridescent-pearl', name: 'Жемчужный блеск' }
+    ];
+
+    const hoverAnimations = [
+    { id: 'none', name: 'Нет' },
+    { id: 'float', name: 'Всплытие' },
+    { id: 'glow', name: 'Сияние' },
+    { id: 'scale', name: 'Увеличение' },
+    { id: 'tilt', name: 'Наклон' },
+    { id: 'shake', name: 'Пульсация' },
+    { id: 'glass', name: 'Блеск' },
+    { id: 'border-flow', name: 'Поток границ' },
+    { id: 'shadow-deep', name: 'Глубокая тень' },
+    { id: 'flip-lite', name: 'Микро-разворот' },
+    { id: 'inner-glow', name: 'Внутреннее свечение' },
+    { id: 'bounce', name: 'Прыжок' },
+    { id: 'focus', name: 'Фокус (блюр других)' },
+    { id: 'rainbow', name: 'Радуга' },
+    { id: 'press', name: 'Нажатие' },
+    { id: 'accent', name: 'Заливка цветом' }
 ];
 
     const saveSettings = () => localStorage.setItem('100pts_settings', JSON.stringify(settings));
@@ -71,7 +113,107 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono:wght@700&family=Montserrat:wght@700;900&family=Oswald:wght@500&family=Pacifico&family=Playfair+Display:wght@700&family=Raleway:wght@700&family=Roboto:wght@400;700&family=Ubuntu:wght@500&family=Unbounded:wght@700&display=swap');
 
         /* КАРТОЧКИ КУРСОВ И УРОКОВ */
-        .UAktb { border: 2px solid #775AFA !important; border-radius: 24px !important; background: #ffffff !important; box-shadow: 0 15px 35px rgba(119, 90, 250, 0.15) !important; padding: 15px !important; margin-bottom: 30px !important; }
+
+        /* Основной контейнер карточки */
+/* Базовые стили для активации анимаций */
+.mUkKn, .UAktb {
+    --card-color: #775AFA; /* Цвет по умолчанию */
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    position: relative !important;
+}
+
+/* Фикс для того, чтобы анимации не обрезались */
+.UAktb { overflow: visible !important; }
+
+/* Твои анимации (пример одной, убедись что у остальных есть !important) */
+.hover-float:hover {
+    transform: translateY(-10px) !important;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+}
+
+/* Специфичный стиль для режима Focus (блюр соседей) */
+body:has(.hover-focus:hover) .mUkKn:not(:hover),
+body:has(.hover-focus:hover) .UAktb:not(:hover) {
+    filter: blur(2px) grayscale(0.5) !important;
+    opacity: 0.6 !important;
+}
+
+.UAktb:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(119, 90, 250, 0.15) !important;
+    border-color: rgba(119, 90, 250, 0.4) !important;
+}
+
+/* Обложка курса */
+.pXp72 {
+    border-radius: 0 0 20px 20px !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Название курса на обложке */
+.TOeQk {
+    background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 100%) !important;
+    padding: 20px 15px !important;
+    height: auto !important;
+    display: flex !important;
+    align-items: flex-end !important;
+}
+
+.TOeQk p {
+    color: white !important;
+    font-weight: 800 !important;
+    font-size: 1.1em !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Прогресс-бар (Неоновый стиль) */
+.DG6Jl {
+    height: 8px !important;
+    background: #f0f0f0 !important;
+    border-radius: 10px !important;
+    overflow: visible !important; /* Для свечения */
+    margin-top: 10px !important;
+}
+
+.NUfp2 {
+    border-radius: 10px !important;
+    background: linear-gradient(90deg, #775AFA, #5C8AFF) !important;
+    box-shadow: 0 0 10px rgba(119, 90, 250, 0.6) !important;
+    position: relative;
+}
+
+/* Текст "Пройдено 81%" */
+.ZP0bu {
+    font-weight: bold !important;
+    color: #444 !important;
+}
+
+.ZP0bu span:last-child {
+    background: #775AFA;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.9em;
+}
+
+/* Нижняя кнопка перехода к уроку */
+.yOmZn {
+    background: rgba(119, 90, 250, 0.05) !important;
+    border-top: 1px solid rgba(119, 90, 250, 0.1) !important;
+    transition: background 0.3s !important;
+}
+
+.yOmZn:hover {
+    background: rgba(119, 90, 250, 0.1) !important;
+    text-decoration: none !important;
+}
+
+.T6RCe {
+    font-weight: 600 !important;
+    color: #555 !important;
+}
+
         .mUkKn { position: relative !important; border: 2px solid #eef0f7 !important; border-radius: 20px !important; margin-bottom: 18px !important; padding: 22px !important; background: #ffffff !important; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; overflow: hidden !important; }
         .mUkKn:hover { border-color: #775AFA !important; transform: translateY(-5px) scale(1.01) !important; box-shadow: 0 12px 30px rgba(119, 90, 250, 0.2) !important; }
         .mUkKn .eBD_9 { padding-right: 80px !important; font-weight: 800 !important; font-size: 1.1em !important; color: #1a1a1a !important; }
@@ -274,89 +416,151 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;
 }
 
-/* --- БАЗОВЫЙ БЕЛЫЙ ФОН ДЛЯ ВСЕХ КАСТОМНЫХ КАРТОЧЕК --- */
+/* Базовый класс для кастомных карточек */
 .custom-card-active {
-    background: #ffffff !important;
+    transition: all 0.3s ease !important;
+}
+
+/* 1. Мягкий океан */
+.style-soft-ocean {
+    background: linear-gradient(135deg, #e0f2f1 0%, #ffffff 100%) !important;
+    border-left: 5px solid #00acc1 !important;
+}
+
+/* 2. Лист бумаги */
+.style-paper-sheet {
+    background: #fdfdfd !important;
+    border: 1px solid #ddd !important;
+    box-shadow: 2px 2px 0px rgba(0,0,0,0.05) !important;
+    border-radius: 2px !important;
+}
+
+/* 3. Градиентное сияние */
+.style-gradient-glow {
+    border: 2px solid transparent !important;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(45deg, var(--card-color), #ff0080) border-box !important;
+}
+
+/* 4. Глубокая тень */
+.style-shadow-depth {
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1), 0 6px 6px rgba(0,0,0,0.1) !important;
     border: none !important;
 }
 
-/* 1. КОНТУРНЫЙ НЕОН (ПОФИКШЕННЫЙ БЕЛЫЙ) */
-.style-neon-border {
-    border: 2px solid var(--card-color) !important;
-    box-shadow: 0 0 15px var(--card-color) !important;
-}
-
-/* 2. КИБЕРПАНК (СВЕТЛЫЙ) */
-.style-cyber-card {
-    border-left: 8px solid var(--card-color) !important;
-    clip-path: polygon(0 0, 100% 0, 100% 85%, 92% 100%, 0 100%);
-    border-bottom: 1px solid #eee !important;
-}
-
-/* 3. МЯГКИЙ ОКЕАН */
-.style-soft-ocean {
-    background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%) !important;
-    border-left: 5px solid #0077ff !important;
-    border-radius: 12px 24px 24px 12px !important;
-}
-
-/* 4. ЛИСТ БУМАГИ (С ЗАГНУТЫМ УГОЛКОМ) */
-.style-paper-sheet {
-    box-shadow: 2px 2px 10px rgba(0,0,0,0.05) !important;
-    border: 1px solid #eee !important;
-    background: linear-gradient(135deg, transparent 20px, #ffffff 0) !important;
-}
-
-/* 5. ГРАДИЕНТНОЕ СИЯНИЕ */
-.style-gradient-glow {
-    border: 2px solid transparent !important;
-    background-image: linear-gradient(#fff, #fff), linear-gradient(to right, var(--card-color), #775AFA) !important;
-    background-origin: border-box !important;
-    background-clip: padding-box, border-box !important;
-}
-
-/* 6. ГЛУБОКАЯ ТЕНЬ (ЭФФЕКТ ПАРЕНИЯ) */
-.style-shadow-depth {
-    box-shadow: 0 20px 40px rgba(0,0,0,0.08) !important;
-    transform: translateY(-2px);
-}
-
-/* 7. БРУТАЛИЗМ (ЖЕСТКИЕ ГРАНИЦЫ) */
+/* 5. Брутализм */
 .style-brutalist {
     border: 3px solid #000 !important;
-    box-shadow: 8px 8px 0px var(--card-color) !important;
+    box-shadow: 5px 5px 0px #000 !important;
+    border-radius: 0 !important;
 }
 
-/* 8. ТОЧЕЧНАЯ СЕТКА */
+/* 6. Точечная сетка */
 .style-dot-grid {
-    background-image: radial-gradient(#e0e0e0 1px, transparent 1px) !important;
-    background-size: 15px 15px !important;
-    border: 1px solid #ddd !important;
+    background-color: #fff !important;
+    background-image: radial-gradient(#d7d7d7 1px, transparent 1px) !important;
+    background-size: 10px 10px !important;
 }
 
-/* 9. РАДУЖНАЯ ГРАНЬ */
+/* 7. Радужная грань */
 .style-rainbow-edge {
     border-bottom: 4px solid transparent !important;
-    border-image: linear-gradient(to right, #ff4747, #ffa500, #00d05a, #775afa) 1 !important;
+    border-image: linear-gradient(90deg, red, orange, yellow, green, blue, purple) 1 !important;
 }
 
-/* 10. НЕО-РЕТРО */
+/* 8. Нео-ретро */
 .style-neo-retro {
-    background: #fffcf5 !important;
-    border: 2px dashed var(--card-color) !important;
-    border-radius: 0px !important;
+    background: #222 !important;
+    border: 2px solid #0ff !important;
+    color: #0ff !important;
 }
 
-/* 11. МОРОЗНАЯ МЯТА */
+/* 9. Морозная мята */
 .style-frosted-mint {
-    background: linear-gradient(135deg, #ffffff 0%, #e6fffa 100%) !important;
-    border: 2px solid #b2f5ea !important;
+    background: rgba(224, 255, 241, 0.8) !important;
+    backdrop-filter: blur(5px);
+    border: 1px solid #b2dfdb !important;
 }
 
-/* 12. ЗОЛОТАЯ КАЙМА */
+/* 10. Золотая кайма */
 .style-gold-leaf {
     border: 1px solid #d4af37 !important;
-    box-shadow: inset 0 0 10px rgba(212, 175, 55, 0.1) !important;
+    box-shadow: inset 0 0 5px #d4af37 !important;
+    background: #fffaf0 !important;
+}
+
+/* 11. Мягкая глина (Светлый неоморфизм) */
+.style-soft-clay {
+    background: #f0f0f3 !important;
+    box-shadow: 7px 7px 15px #d1d9e6, -7px -7px 15px #ffffff !important;
+    border: none !important;
+}
+
+/* 12. Морское стекло (Голубоватый полупрозрачный) */
+.style-aqua-glass {
+    background: rgba(224, 247, 250, 0.6) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 188, 212, 0.2) !important;
+    box-shadow: 0 4px 15px rgba(0, 188, 212, 0.1) !important;
+}
+
+/* 13. Белая керамика (Глянцевый белый с тонким бликом) */
+.style-ceramic-white {
+    background: #fff !important;
+    border: 1px solid #eee !important;
+    background-image: linear-gradient(120deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0) 70%) !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03) !important;
+}
+
+/* 14. Чертеж (Синие линии на белом) */
+.style-blueprint {
+    background-color: #ffffff !important;
+    background-image: linear-gradient(rgba(119, 90, 250, 0.05) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(119, 90, 250, 0.05) 1px, transparent 1px) !important;
+    background-size: 20px 20px !important;
+    border: 1px solid rgba(119, 90, 250, 0.2) !important;
+}
+
+/* 15. Промышленная сетка (Мелкий ромб) */
+.style-industrial-mesh {
+    background: #f8f9fa !important;
+    background-image: url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='0.03' fill-rule='evenodd'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E") !important;
+    border: 1px solid #dee2e6 !important;
+}
+
+/* 16. Газетная вырезка (Желтоватая бумага и грубая рамка) */
+.style-pulp-fiction {
+    background: #fdf6e3 !important;
+    border: 1px solid #d3c6aa !important;
+    font-family: serif !important;
+    box-shadow: 3px 3px 0px rgba(0,0,0,0.1) !important;
+}
+
+/* 17. Зефирный градиент (Очень мягкий пастельный) */
+.style-sweet-marshmallow {
+    background: linear-gradient(135deg, #fff5f5 0%, #f0f4ff 100%) !important;
+    border: 1px solid #ffd1d1 !important;
+}
+
+/* 18. Штампованный картон */
+.style-stamped-card {
+    background: #f4f1ea !important;
+    border: 2px dashed #c4b9a3 !important;
+    border-radius: 8px !important;
+}
+
+/* 19. Эскиз карандашом (Штриховка по краям) */
+.style-modern-sketch {
+    background: #fff !important;
+    border: 2px solid #333 !important;
+    border-radius: 255px 15px 225px 15px/15px 225px 15px 255px !important; /* Кривая рамка от руки */
+}
+
+/* 20. Жемчужный блеск (Перламутр) */
+.style-iridescent-pearl {
+    background: linear-gradient(45deg, #ffffff 0%, #f2f2f2 45%, #e6e6e6 55%, #ffffff 100%) !important;
+    border: 1px solid rgba(255,255,255,0.5) !important;
+    box-shadow: 0 0 10px rgba(255,255,255,0.8), inset 0 0 10px rgba(0,0,0,0.02) !important;
 }
 
 /* --- СТИЛИ ПЛАШЕК (ПРОЦЕНТОВ) --- */
@@ -406,6 +610,368 @@
 .badge-outline, .badge-glass {
     background: #ffffff !important;
     color: var(--badge-color, #333) !important;
+}
+
+/* --- АНИМАЦИИ ПРИ НАВЕДЕНИИ --- */
+
+/* 1. Всплытие */
+.hover-float:hover {
+    transform: translateY(-10px) !important;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+}
+
+/* 2. Сияние (Neon Glow) */
+.hover-glow:hover {
+    box-shadow: 0 0 20px var(--card-color) !important;
+    border-color: var(--card-color) !important;
+}
+
+/* 3. Увеличение */
+.hover-scale:hover {
+    transform: scale(1.03) !important;
+    z-index: 5;
+}
+
+/* 4. Наклон */
+.hover-tilt:hover {
+    transform: perspective(1000px) rotateX(5deg) rotateY(2deg) !important;
+}
+
+/* 5. Пульсация */
+@keyframes hover-shake-anim {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+.hover-shake:hover {
+    animation: hover-shake-anim 0.6s infinite ease-in-out !important;
+}
+
+/* 6. Стеклянный блеск (Blink) */
+.hover-glass { position: relative; overflow: hidden; }
+.hover-glass::after {
+    content: ""; position: absolute; top: -50%; left: -60%; width: 20%; height: 200%;
+    background: rgba(255, 255, 255, 0.4); transform: rotate(30deg);
+    transition: none; opacity: 0;
+}
+.hover-glass:hover::after {
+    left: 120%; transition: all 0.6s ease-in-out; opacity: 1;
+}
+
+/* 7. Рамка-градиент */
+.hover-border-flow:hover {
+    border-color: transparent !important;
+    background-image: linear-gradient(#fff, #fff), linear-gradient(90deg, var(--card-color), #5C8AFF);
+    background-origin: border-box; background-clip: content-box, border-box;
+    border: 2px solid transparent !important;
+}
+
+/* 8. Тень под карточкой (Lift) */
+.hover-shadow-deep:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 9. Разворот (Flip-lite) */
+.hover-flip-lite:hover {
+    transform: rotateY(10deg) rotateX(2deg) !important;
+}
+
+/* 10. Внутреннее свечение (Inner Glow) */
+.hover-inner-glow:hover {
+    box-shadow: inset 0 0 15px var(--card-color) !important;
+}
+
+/* 11. Прыжок (Bounce) */
+@keyframes bounce-anim {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-7px); }
+}
+.hover-bounce:hover { animation: bounce-anim 0.6s infinite !important; }
+
+/* 12. Размытие фона (Focus) */
+.hover-focus:hover { transform: scale(1.02) !important; }
+body:has(.hover-focus:hover) .mUkKn:not(:hover),
+body:has(.hover-focus:hover) .UAktb:not(:hover) {
+    filter: blur(2px) grayscale(0.5); opacity: 0.8;
+}
+
+/* 13. Радужный неон */
+@keyframes rainbow-border {
+    0% { border-color: #ff0000; } 33% { border-color: #00ff00; } 66% { border-color: #0000ff; } 100% { border-color: #ff0000; }
+}
+.hover-rainbow:hover { animation: rainbow-border 2s infinite linear !important; border-width: 2px !important; }
+
+/* 14. Сжатие (Press) */
+.hover-press:hover { transform: scale(0.97) !important; filter: brightness(0.9); }
+
+/* 15. Цветной акцент */
+.hover-accent:hover {
+    background: var(--card-color) !important;
+}
+.hover-accent:hover * { color: white !important; }
+
+/* Плавность для всех карточек */
+.mUkKn {
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+/* Квадратная кнопка скачивания */
+.download-task-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    width: 36px; /* Одинаковая ширина и высота */
+    height: 36px;
+    padding: 0;
+    background: #775AFA;
+    color: white !important;
+    border: none;
+    border-radius: 8px; /* Слегка скругленный квадрат */
+    cursor: pointer;
+    font-size: 18px; /* Размер иконки */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.1; /* Едва заметна в покое */
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.dJ46J:hover .download-task-btn {
+    opacity: 1;
+}
+
+.download-task-btn:hover {
+    background: #6246e5;
+    transform: scale(1.1);
+}
+
+/* Убираем "Уровень ЕГЭ" и лишние иконки рядом с ним */
+.dUBAa.w0zSk {
+    display: none !important;
+}
+
+/* Фикс для буфера: уведомление о копировании */
+.copy-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #00D05A;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: bold;
+    z-index: 10000;
+    animation: fade-in-out 2s forwards;
+}
+
+@keyframes fade-in-out {
+    0% { opacity: 0; transform: translate(-50%, 20px); }
+    20% { opacity: 1; transform: translate(-50%, 0); }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Фиксируем контекст, чтобы кнопка не улетала */
+.dJ46J {
+    position: relative !important;
+}
+
+/* Квадратная кнопка в углу контейнера */
+.download-task-btn {
+    position: absolute !important;
+    top: 10px !important;
+    right: 10px !important;
+    width: 36px !important;
+    height: 36px !important;
+    z-index: 9999 !important; /* Поверх всего внутри задачи */
+    padding: 0 !important;
+    background: #775AFA !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    font-size: 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0.1;
+    transition: all 0.2s ease;
+}
+
+/* Показываем только при наведении на саму задачу */
+.dJ46J:hover .download-task-btn {
+    opacity: 1;
+}
+
+.download-all-tasks-btn {
+    margin-left: 10px;
+    padding: 5px 15px;
+    background: #00D05A;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+.download-all-tasks-btn:hover { background: #00b34d; transform: scale(1.05); }
+.download-all-tasks-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+/* Скрытие через классы управления */
+.hide-capture-btns .download-task-btn { display: none !important; }
+.hide-mass-capture .download-all-tasks-btn { display: none !important; }
+
+/* Стили для чекбоксов в меню */
+.menu-checkbox-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+.pts-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #775AFA;
+}
+
+/* Контейнер видео */
+.gDPOa {
+    position: relative !important; /* КРИТИЧНО для уголка */
+    flex-shrink: 0 !important;
+    margin-right: 15px !important;
+    border: 1px solid transparent;
+}
+
+/* Контейнер-обертка для видео и чата */
+.wCNrd {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* Кнопка закрытия чата */
+.chat-close-btn {
+    position: absolute !important;
+    top: -30px !important; /* Над чатом */
+    right: 0 !important;
+    background: #775AFA !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 4px !important;
+    padding: 2px 8px !important;
+    cursor: pointer !important;
+    font-size: 11px !important;
+    z-index: 100 !important;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.chat-close-btn:hover {
+    opacity: 1;
+    background: #5a42cc !important;
+}
+
+/* Контейнер чата должен быть relative, чтобы кнопка позиционировалась от него */
+.vqMgR {
+    position: relative !important;
+    display: block !important;
+}
+
+/* Класс для скрытия чата */
+.chat-hidden {
+    display: none !important;
+}
+
+/* Если чат скрыт, убираем отступ у видео */
+.chat-hidden + .gDPOa, .gDPOa:has(+ .chat-hidden) {
+    margin-right: 0 !important;
+}
+
+/* Уголок */
+.video-resizer-handle {
+    position: absolute !important;
+    right: 5px !important;  /* Чуть отодвинул от самого края */
+    bottom: 5px !important;
+    width: 20px !important;
+    height: 20px !important;
+    background: linear-gradient(135deg, transparent 50%, #775AFA 50%) !important;
+    cursor: nwse-resize !important;
+    z-index: 2147483647 !important;
+    border-radius: 2px !important;
+    display: block !important; /* Гарантируем видимость */
+    box-shadow: -1px -1px 2px rgba(0,0,0,0.2);
+}
+
+/* Снятие лимитов с родителей */
+.force-resizable-limit {
+    max-width: none !important;
+    width: fit-content !important;
+}
+
+/* Контейнеры для лоадеров */
+svg.Z9K3I, .ormof {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 150px !important; /* Увеличили, чтобы влезла надпись */
+    height: 180px !important;
+    background-image: url('https://i.giphy.com/KbdF8DCgaoIVC8BHTK.webp') !important; /* Pop Cat (более надежная ссылка) */
+    background-size: 100px 100px !important;
+    background-position: top center !important;
+    background-repeat: no-repeat !important;
+    background-color: transparent !important;
+    border: none !important;
+    position: relative !important;
+    margin: 20px auto !important;
+    overflow: visible !important;
+}
+
+/* Скрываем старый контент */
+svg.Z9K3I *, .ormof * {
+    display: none !important;
+}
+
+/* Добавляем надпись "грузится, пагоди" */
+svg.Z9K3I::after, .ormof::after {
+    content: "грузится, пагоди..." !important;
+    display: block !important;
+    position: absolute !important;
+    bottom: 10px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: max-content !important;
+
+    /* Стили текста */
+    font-family: 'Inter', 'Segoe UI', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: var(--card-color, #775AFA) !important;
+    text-transform: lowercase !important;
+    letter-spacing: 0.5px !important;
+
+    /* Анимация мигания */
+    animation: loading-text-pulse 1.5s infinite ease-in-out !important;
+}
+
+/* Сама анимация текста */
+@keyframes loading-text-pulse {
+    0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(0.95); }
+    50% { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+/* Добавляем мягкое свечение вокруг котика, если включен неон */
+body[data-theme="dark"] svg.Z9K3I {
+    filter: drop-shadow(0 0 10px rgba(119, 90, 250, 0.5)) !important;
 }
     `);
 
@@ -459,14 +1025,16 @@
                     const deadline = hw.deadline || data.deadline;
                     const isPassed = hw.is_deadline_passed !== undefined ? hw.is_deadline_passed : data.is_deadline_passed;
 
-                    // 1. Обновляем кэш
+                    // Сохраняем в долгосрочный кэш
                     cache.set(lessonId, { status, deadline, is_deadline_passed: isPassed });
 
-                    // 2. Сначала логика фикса текста в кнопке (без отрисовки плашки)
+                    // Применяем статус
                     applyStatusToDOM(status, badge, lessonNode, deadline);
 
-                    // 3. И только теперь вызываем отрисовку визуала (она сама решит: 0% или время)
-                    processVisuals(lessonNode);
+                    // Если статус финальный, блокируем повторные проверки
+                    if (status === 'passed') {
+                        badge.setAttribute('data-checked', 'true');
+                    }
                 } catch (e) {}
             }
         });
@@ -571,6 +1139,13 @@
             </div>
 
             <div class="menu-section">
+                <label>Анимация при наведении</label>
+                <select class="pts-select" data-setting="hoverAnim">
+                    ${hoverAnimations.map(a => `<option value="${a.id}" ${settings.hoverAnim === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
+                </select>
+            </div>
+
+            <div class="menu-section">
                 <label>Тип прогресс-бара</label>
                 <select class="pts-select" data-setting="barStyle">
                     <option value="default" ${settings.barStyle === 'default' ? 'selected' : ''}>Неоновый</option>
@@ -604,6 +1179,31 @@
                 <input type="range" class="pts-range" data-setting="fontSize" min="10" max="24" value="${settings.fontSize}">
             </div>
 
+            <div class="menu-section">
+                <div class="menu-checkbox-section">
+                    <label>Ресайз видео (тяни за угол)</label>
+                    <input type="checkbox" class="pts-checkbox" data-setting="videoResizer" ${settings.videoResizer ? 'checked' : ''}>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-checkbox-section">
+                    <label>Кнопка захвата задачи (📸)</label>
+                    <input type="checkbox" class="pts-checkbox" data-setting="showCaptureBtn" ${settings.showCaptureBtn ? 'checked' : ''}>
+                </div>
+                <div class="menu-checkbox-section">
+                    <label>Кнопка "Скачать всё" (📥)</label>
+                    <input type="checkbox" class="pts-checkbox" data-setting="showMassCaptureBtn" ${settings.showMassCaptureBtn ? 'checked' : ''}>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                 <div class="menu-checkbox-section">
+                    <label>Кнопка скрытия чата (✕)</label>
+                    <input type="checkbox" class="pts-checkbox" data-setting="showChatCloseBtn" ${settings.showChatCloseBtn ? 'checked' : ''}>
+                 </div>
+            </div>
+
             <button id="pts-close" style="width: 100%; padding: 12px; background: #775AFA; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; margin-top: 10px;">Готово</button>
         `;
         document.body.appendChild(menu);
@@ -613,10 +1213,10 @@
         document.getElementById('pts-close').onclick = () => menu.classList.remove('open');
 
         // ОБРАБОТКА ВСЕХ ИЗМЕНЕНИЙ (oninput для живого отклика)
-        menu.querySelectorAll('.pts-select, .pts-range').forEach(el => {
+        menu.querySelectorAll('.pts-select, .pts-range, .pts-checkbox').forEach(el => {
             const updateAll = () => {
                 const key = el.dataset.setting;
-                let val = el.value;
+                let val = el.type === 'checkbox' ? el.checked : el.value;
 
                 if (el.type === 'range') {
                     val = parseInt(val);
@@ -626,8 +1226,13 @@
 
                 settings[key] = val;
                 saveSettings();
-                updateDynamicStyles(); // Мгновенно меняет масштаб и шрифт через CSS
-                document.querySelectorAll('.mUkKn').forEach(processVisuals); // Мгновенно меняет стили карточек
+
+                // Специфическая логика для мгновенного скрытия кнопок
+                toggleCaptureVisibility();
+                updateChatControl();
+
+                updateDynamicStyles();
+                document.querySelectorAll('.mUkKn').forEach(processVisuals);
             };
 
             el.oninput = updateAll;
@@ -635,124 +1240,197 @@
         });
     }
 
-    function processVisuals(lesson) {
-    const link = lesson.querySelector('a');
-    const lessonId = link?.href.match(/lesson\/(\d+)/)?.[1];
-    const lessonData = cache.get(lessonId); // Данные из API
-    const progressBar = lesson.querySelector('.D0VIa');
+    function toggleCaptureVisibility() {
+        // Управляем одиночными кнопками
+        document.body.classList.toggle('hide-capture-btns', !settings.showCaptureBtn);
 
-    // 1. Считаем процент из прогресс-бара (он доступен сразу без API)
-    const p = progressBar ? (parseInt(progressBar.style.width) || 0) : 0;
+        // Управляем кнопкой массовой загрузки
+        document.body.classList.toggle('hide-mass-capture', !settings.showMassCaptureBtn);
+    }
 
-    let finalColor = (settings.barStyle === 'dynamic')
-        ? getSmartColor(p)
-        : (p >= 90 ? '#00D05A' : p > 70 ? '#ADFF2F' : p > 30 ? '#FFA500' : '#FF4747');
+    // Вызови её один раз при старте скрипта
+    toggleCaptureVisibility();
 
-    // --- 1. СБРОС КАРТОЧКИ ---
-    const currentClasses = Array.from(lesson.classList);
-    currentClasses.forEach(cls => { if (cls.startsWith('style-')) lesson.classList.remove(cls); });
-    lesson.style.clipPath = '';
-    lesson.style.borderRadius = '';
-    lesson.style.setProperty('--card-color', finalColor);
+    function applyCardEffects(element, percent, finalColor) {
+    if (!element) return;
 
+    // 1. Управляем СТИЛЕМ (style-...)
+    const currentClasses = Array.from(element.classList);
+    currentClasses.forEach(cls => {
+        // Удаляем старый стиль, только если он отличается от выбранного
+        if (cls.startsWith('style-') && cls !== 'style-' + settings.cardStyle) {
+            element.classList.remove(cls);
+        }
+        // Удаляем анимацию, если она сменилась
+        if (cls.startsWith('hover-') && cls !== 'hover-' + settings.hoverAnim) {
+            element.classList.remove(cls);
+        }
+    });
+
+    // 2. Устанавливаем цвет (важно для всех стилей)
+    element.style.setProperty('--card-color', finalColor);
+
+    // 3. Применяем стиль карточки
     if (settings.cardStyle && settings.cardStyle !== 'default') {
-        lesson.classList.add('custom-card-active', 'style-' + settings.cardStyle);
+        element.classList.add('custom-card-active');
+        element.classList.add('style-' + settings.cardStyle);
     } else {
-        lesson.classList.remove('custom-card-active');
+        element.classList.remove('custom-card-active');
     }
 
-    // --- 2. ПОДГОТОВКА ПЛАШКИ ---
-    let pbBadge = lesson.querySelector('.custom-percent-badge');
-    if (!pbBadge) {
-        pbBadge = document.createElement('div');
-        pbBadge.className = 'custom-percent-badge';
-        lesson.appendChild(pbBadge);
-    }
-
-    pbBadge.className = 'custom-percent-badge';
-    pbBadge.style.background = '';
-    pbBadge.style.color = 'white';
-    pbBadge.style.display = 'none';
-
-    // --- 3. ЛОГИКА ОПРЕДЕЛЕНИЯ КОНТЕНТА ---
-    let badgeText = '';
-    let badgeColor = finalColor;
-    let isUrgent = false;
-
-    // СНАЧАЛА ПРОВЕРЯЕМ ПРОЦЕНТЫ (Работает без API!)
-    if (p > 0) {
-        badgeText = p + '%';
-        badgeColor = finalColor;
-    }
-    // ДЕДЛАЙНЫ (Нуждаются в API)
-    else if (lessonData) {
-        const { status, deadline, is_deadline_passed } = lessonData;
-        if (!is_deadline_passed && deadline && status !== 'passed' && status !== 'checking') {
-            const parts = deadline.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-            if (parts) {
-                const dDate = new Date(`${parts[3]}-${parts[2]}-${parts[1]}T23:59:59`);
-                const diff = dDate - new Date();
-                if (diff > 0) {
-                    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-                    badgeText = `${d}д ${h}ч`;
-                    badgeColor = (d < 2) ? '#FF4747' : '#775AFA';
-                    isUrgent = (d < 2);
-                }
-            }
-        }
-    }
-
-    // --- 4. ОТРИСОВКА ---
-    if (badgeText) {
-        pbBadge.innerText = badgeText;
-        pbBadge.style.display = 'block';
-        pbBadge.style.setProperty('--badge-color', badgeColor);
-
-        if (settings.badgeStyle && settings.badgeStyle !== 'flat') {
-            pbBadge.classList.add('badge-' + settings.badgeStyle);
-        } else {
-            pbBadge.style.background = badgeColor;
-        }
-
-        if (isUrgent) pbBadge.classList.add('deadline-urgent');
-    }
-
-    // --- 5. ПРОГРЕСС-БАР ---
-    if (progressBar) {
-        progressBar.style.setProperty('background-color', finalColor, 'important');
-        progressBar.style.setProperty('box-shadow', `0 0 10px ${finalColor}`, 'important');
+    // 4. Применяем анимацию
+    if (settings.hoverAnim && settings.hoverAnim !== 'none') {
+        element.classList.add('hover-' + settings.hoverAnim);
     }
 }
 
+    function processCourseCard(courseCard) {
+        // 1. Ищем процент прохождения курса (в селекторе .ZP0bu)
+        const percentSpan = courseCard.querySelector('.ZP0bu span:last-child');
+        const p = percentSpan ? parseInt(percentSpan.innerText) : 0;
+
+        // 2. Определяем цвет на основе процента
+        let finalColor = (settings.barStyle === 'dynamic')
+        ? getSmartColor(p)
+        : (p >= 90 ? '#00D05A' : p > 70 ? '#ADFF2F' : p > 30 ? '#FFA500' : '#FF4747');
+
+        // 3. Применяем визуальные эффекты из общей функции
+        applyCardEffects(courseCard, p, finalColor);
+
+        // 4. Специфично для курсов: подсвечиваем нативный прогресс-бар курса
+        const courseBar = courseCard.querySelector('.NUfp2');
+        if (courseBar) {
+            courseBar.style.setProperty('background', `linear-gradient(90deg, ${finalColor}, #5C8AFF)`, 'important');
+            courseBar.style.setProperty('box-shadow', `0 0 10px ${finalColor}99`, 'important');
+        }
+    }
+
+    function processVisuals(lesson) {
+        const link = lesson.querySelector('a');
+        const lessonId = link?.href.match(/lesson\/(\d+)/)?.[1];
+
+        // МГНОВЕННО получаем данные из нашего "вечного" кеша
+        const lessonData = cache.get(lessonId);
+        const progressBar = lesson.querySelector('.D0VIa');
+        const p = progressBar ? (parseInt(progressBar.style.width) || 0) : 0;
+
+        let finalColor = (settings.barStyle === 'dynamic')
+        ? getSmartColor(p)
+        : (p >= 90 ? '#00D05A' : p > 70 ? '#ADFF2F' : p > 30 ? '#FFA500' : '#FF4747');
+
+        applyCardEffects(lesson, p, finalColor);
+
+        let pbBadge = lesson.querySelector('.custom-percent-badge');
+        if (!pbBadge) {
+            pbBadge = document.createElement('div');
+            pbBadge.className = 'custom-percent-badge';
+            lesson.appendChild(pbBadge);
+        }
+
+        pbBadge.className = 'custom-percent-badge';
+        pbBadge.style.display = 'none';
+
+        let badgeText = '';
+        let badgeColor = finalColor;
+        let isUrgent = false;
+
+        // --- ПРИОРЕТЕТ ДЕДЛАЙНАМ ---
+        // Если есть данные из кеша и урок не пройден полностью
+        if (lessonData && p < 100) {
+            const { status, deadline, is_deadline_passed } = lessonData;
+            if (!is_deadline_passed && deadline && status !== 'passed' && status !== 'checking') {
+                const parts = deadline.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+                if (parts) {
+                    const dDate = new Date(`${parts[3]}-${parts[2]}-${parts[1]}T23:59:59`);
+                    const diff = dDate - new Date();
+                    if (diff > 0) {
+                        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                        const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                        badgeText = `${d}д ${h}ч`;
+                        badgeColor = (d < 2) ? '#FF4747' : '#775AFA';
+                        isUrgent = (d < 2);
+                    }
+                }
+            }
+        }
+
+        // Если дедлайна нет или урок уже начат, показываем проценты (если они выше 0)
+        if (!badgeText && p > 0) {
+            badgeText = p + '%';
+            badgeColor = finalColor;
+        }
+
+        if (badgeText) {
+            pbBadge.innerText = badgeText;
+            pbBadge.style.display = 'block';
+            pbBadge.style.setProperty('--badge-color', badgeColor);
+            if (settings.badgeStyle && settings.badgeStyle !== 'flat') {
+                pbBadge.classList.add('badge-' + settings.badgeStyle);
+            } else {
+                pbBadge.style.background = badgeColor;
+            }
+            if (isUrgent) pbBadge.classList.add('deadline-urgent');
+        }
+
+        if (progressBar) {
+            progressBar.style.setProperty('background-color', finalColor, 'important');
+            progressBar.style.setProperty('box-shadow', `0 0 10px ${finalColor}`, 'important');
+        }
+    }
+
     function processStatusLogic(lesson, badge) {
         const link = lesson.querySelector('a');
-        if (authToken && link && !badge.hasAttribute('data-checked')) {
-            const id = link.href.match(/lesson\/(\d+)/)?.[1];
-            if (id) {
-                badge.setAttribute('data-checked', 'processing');
-                fetchRealStatus(id, badge, lesson);
+        const lessonId = link?.href.match(/lesson\/(\d+)/)?.[1];
+        if (!lessonId) return;
+
+        const cached = cache.get(lessonId);
+
+        // 1. ЕСЛИ ПРОЙДЕНО — отрисовываем и забываем навсегда
+        if (cached && cached.status === 'passed') {
+            if (!badge.hasAttribute('data-checked')) {
+                applyStatusToDOM('passed', badge, lesson);
+                badge.setAttribute('data-checked', 'true');
             }
+            return;
+        }
+
+        // 2. ЕСЛИ НА ПРОВЕРКЕ — отрисовываем мгновенно из кэша (оптимистично)
+        if (cached && cached.status === 'checking') {
+            if (!badge.hasAttribute('data-checked')) {
+                applyStatusToDOM('checking', badge, lesson);
+                // НЕ ставим data-checked, чтобы fetchRealStatus сработал в фоне один раз
+            }
+        }
+
+        // 3. АКТУАЛИЗАЦИЯ (для всех, кто не 'passed', или если кэша нет)
+        // Чтобы не спамить API, проверяем только если еще не синхронизировали в этой сессии
+        if (!lesson.hasAttribute('data-api-synced')) {
+            lesson.setAttribute('data-api-synced', 'true');
+            fetchRealStatus(lessonId, badge, lesson);
         }
     }
 
     function applyLogic() {
         if (location.href !== lastUrl) {
             lastUrl = location.href;
-            cache.clear();
             retryCount.clear();
             document.querySelectorAll('[data-checked]').forEach(el => el.removeAttribute('data-checked'));
         }
 
+        // --- ОБРАБОТКА УРОКОВ ---
         document.querySelectorAll('.mUkKn').forEach(lesson => {
             const badge = lesson.querySelector('.Rjxh7');
             if (!badge) return;
 
-            // Просто запускаем визуал, он сам всё прочитает
             processVisuals(lesson);
 
             if (badge.classList.contains('Plz9L') && !badge.hasAttribute('data-checked')) return;
             processStatusLogic(lesson, badge);
+        });
+
+        // --- ОБРАБОТКА КАРТОЧЕК КУРСОВ (НОВОЕ) ---
+        document.querySelectorAll('.UAktb').forEach(courseCard => {
+            processCourseCard(courseCard);
         });
     }
 
@@ -783,6 +1461,325 @@
         return interpolateColor('#95CD41', '#00D05A', (p - 66) / 24);
     }
 
+    async function processTaskCapture(taskElement, btn) {
+        // 1. Скрываем кнопку, чтобы её не было на скрине
+        btn.style.visibility = 'hidden';
+
+        try {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+            const canvas = await html2canvas(taskElement, {
+                backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF',
+                scale: 2,
+                useCORS: true,
+                logging: false
+            });
+
+            // 2. Копирование в буфер обмена
+            canvas.toBlob(async (blob) => {
+                try {
+                    const data = [new ClipboardItem({ [blob.type]: blob })];
+                    await navigator.clipboard.write(data);
+                    showToast("Скопировано в буфер!");
+                } catch (err) {
+                    console.error("Буфер не сработал:", err);
+                }
+            });
+
+            // 3. Сохранение файла
+            const link = document.createElement('a');
+            const taskName = taskElement.querySelector('.XZTcz')?.innerText || 'Task';
+            link.download = `${taskName.replace(/[^a-zа-я0-9]/gi, '_')}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+        } catch (e) {
+            console.error("Ошибка захвата:", e);
+        } finally {
+            btn.style.visibility = 'visible';
+        }
+    }
+
+    // Вспомогательная функция уведомления
+    function showToast(text) {
+        const toast = document.createElement('div');
+        toast.className = 'copy-toast';
+        toast.innerText = text;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    }
+
+    async function downloadAllHomework(btn) {
+        const taskButtons = document.querySelectorAll('.Hlt15'); // Кнопки номеров 1, 2, 3...
+        if (taskButtons.length === 0) return;
+
+        const originalActive = document.querySelector('.Hlt15.HqV_y'); // Запоминаем текущую
+        btn.disabled = true;
+        btn.innerText = '⌛ Загрузка...';
+
+        for (let i = 0; i < taskButtons.length; i++) {
+            const tBtn = taskButtons[i];
+            tBtn.click(); // Переключаем задачу
+
+            btn.innerText = `📸 Задание ${i + 1}/${taskButtons.length}`;
+
+            // Ждем подгрузки контента (ждем, пока появится текст внутри .ck-content)
+            await new Promise(resolve => {
+                let checks = 0;
+                const interval = setInterval(() => {
+                    const content = document.querySelector('.ck-content');
+                    // Проверяем, что текст обновился (не пустой и не старый)
+                    if (content && content.innerText.length > 10 || checks > 20) {
+                        clearInterval(interval);
+                        setTimeout(resolve, 500); // Небольшая пауза для рендера формул
+                    }
+                    checks++;
+                }, 100);
+            });
+
+            // Делаем скриншот текущей подгруженной задачи
+            const taskElement = document.querySelector('.dJ46J');
+            const captureBtn = taskElement.querySelector('.download-task-btn');
+
+            // Используем твою логику захвата, но без Clipboard (чтобы не спамить в буфер)
+            await silentTaskCapture(taskElement, captureBtn);
+        }
+
+        // Возвращаемся в начало
+        if (originalActive) originalActive.click();
+        btn.disabled = false;
+        btn.innerText = '✅ Готово!';
+        setTimeout(() => { btn.innerText = '📥 Скачать всё (PNG)'; }, 3000);
+    }
+
+    // Упрощенная версия захвата без буфера обмена для массовой скачки
+    async function silentTaskCapture(taskElement, btn) {
+        if (btn) btn.style.visibility = 'hidden';
+        try {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const canvas = await html2canvas(taskElement, {
+                backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF',
+                scale: 2,
+                useCORS: true
+            });
+            const link = document.createElement('a');
+            const taskName = taskElement.querySelector('.XZTcz')?.innerText || 'Task';
+            link.download = `${taskName.replace(/[^a-zа-я0-9]/gi, '_')}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch (e) {}
+        if (btn) btn.style.visibility = 'visible';
+    }
+
+    // Функция для вставки кнопки «Скачать всё»
+    function initGlobalDownload() {
+        if (!settings.showMassCaptureBtn) return;
+
+        const container = document.querySelector('.s_wDL'); // Контейнер с цифрами задач
+        if (container && !document.querySelector('.download-all-tasks-btn')) {
+            const btn = document.createElement('button');
+            btn.className = 'download-all-tasks-btn';
+            btn.innerText = '📥 Скачать всё (PNG)';
+            btn.onclick = () => downloadAllHomework(btn);
+            container.parentElement.appendChild(btn);
+        }
+    }
+
+    // Инициализация кнопок
+    function initDownloadButtons() {
+        if (!settings.showCaptureBtn) return;
+        // Ищем блоки задач
+        document.querySelectorAll('.dJ46J:not(.has-capture-btn)').forEach(task => {
+            task.classList.add('has-capture-btn');
+
+            const btn = document.createElement('button');
+            btn.className = 'download-task-btn';
+            btn.title = "Скачать и копировать";
+            btn.innerHTML = '📷'; // Короткая иконка для квадрата
+
+            btn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                processTaskCapture(task, btn);
+            };
+
+            task.appendChild(btn);
+        });
+    }
+
+    function initVideoResizer() {
+        const videoContainers = document.querySelectorAll('.gDPOa');
+
+        videoContainers.forEach(container => {
+            // Если уголка нет - создаем
+            if (!container.querySelector('.video-resizer-handle')) {
+                const handle = document.createElement('div');
+                handle.className = 'video-resizer-handle';
+                container.appendChild(handle);
+
+                handle.onmousedown = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Защитный слой на весь экран
+                    const globalOverlay = document.createElement('div');
+                    Object.assign(globalOverlay.style, {
+                        position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
+                        zIndex: '2147483647', cursor: 'nwse-resize'
+                    });
+                    document.body.appendChild(globalOverlay);
+
+                    const chat = container.parentElement.querySelector('.vqMgR');
+                    if (chat) chat.style.pointerEvents = 'none';
+
+                    const startX = e.clientX;
+                    const startY = e.clientY;
+                    const startWidth = container.offsetWidth;
+                    const startHeight = container.offsetHeight;
+
+                    // Подготовка родителей
+                    let p = container.parentElement;
+                    while (p && p.tagName !== 'MAIN') {
+                        p.classList.add('force-resizable-limit');
+                        p = p.parentElement;
+                    }
+
+                    function doDrag(ev) {
+                        const deltaX = ev.clientX - startX;
+                        const deltaY = ev.clientY - startY;
+
+                        if (startWidth + deltaX > 300) {
+                            container.style.width = (startWidth + deltaX) + 'px';
+                            container.style.maxWidth = 'none';
+                        }
+                        if (startHeight + deltaY > 150) {
+                            container.style.height = (startHeight + deltaY) + 'px';
+                        }
+                    }
+
+                    function stopDrag() {
+                        if (globalOverlay.parentNode) globalOverlay.parentNode.removeChild(globalOverlay);
+                        if (chat) chat.style.pointerEvents = 'auto';
+                        document.removeEventListener('mousemove', doDrag);
+                        document.removeEventListener('mouseup', stopDrag);
+                    }
+
+                    document.addEventListener('mousemove', doDrag);
+                    document.addEventListener('mouseup', stopDrag);
+                };
+            }
+        });
+    }
+
+    // Функция для отрисовки кнопки закрытия
+    function initChatControl() {
+        // Проверяем настройку в localStorage (или через твой объект настроек)
+        const showCloseBtn = localStorage.getItem('showChatCloseBtn') !== 'false';
+        if (!showCloseBtn) {
+            document.querySelectorAll('.chat-close-btn').forEach(b => b.remove());
+            return;
+        }
+
+        const chatContainer = document.querySelector('.vqMgR');
+        if (chatContainer && !chatContainer.querySelector('.chat-close-btn')) {
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'chat-close-btn';
+            closeBtn.innerText = 'Скрыть чат ✕';
+            closeBtn.onclick = () => {
+                chatContainer.classList.add('chat-hidden');
+                // Опционально: сохраняем состояние, чтобы чат не открылся сам при переходе
+                // localStorage.setItem('chatIsHidden', 'true');
+            };
+            chatContainer.appendChild(closeBtn);
+        }
+    }
+
+    function updateChatControl() {
+        const chatContainer = document.querySelector('.vqMgR');
+        if (!chatContainer) return;
+
+        // Если настройка выключена — удаляем кнопку, если она была
+        if (!settings.showChatCloseBtn) {
+            const existingBtn = chatContainer.querySelector('.chat-close-btn');
+            if (existingBtn) existingBtn.remove();
+            return;
+        }
+
+        // Если настройка включена и кнопки еще нет — создаем
+        if (!chatContainer.querySelector('.chat-close-btn')) {
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'chat-close-btn';
+            closeBtn.innerText = 'Скрыть чат ✕';
+
+            closeBtn.onclick = () => {
+                chatContainer.classList.toggle('chat-hidden');
+                closeBtn.innerText = chatContainer.classList.contains('chat-hidden')
+                    ? 'Показать чат 👁'
+                : 'Скрыть чат ✕';
+            };
+
+            chatContainer.appendChild(closeBtn);
+        }
+    }
+
+    function setupResizerEvents(container, handle) {
+        handle.onmousedown = function(e) {
+            e.preventDefault();
+            e.stopPropagation(); // Чтобы клик не ушел в плеер
+
+            const globalOverlay = document.createElement('div');
+            Object.assign(globalOverlay.style, {
+                position: 'fixed',
+                top: '0', left: '0', width: '100vw', height: '100vh',
+                zIndex: '2147483647', cursor: 'nwse-resize'
+            });
+            document.body.appendChild(globalOverlay);
+
+            const chat = container.parentElement.querySelector('.vqMgR');
+            if (chat) chat.style.pointerEvents = 'none';
+
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const startWidth = container.offsetWidth;
+            const startHeight = container.offsetHeight;
+
+            const parentsToResize = [];
+            let p = container.parentElement;
+            while (p && p.tagName !== 'MAIN') {
+                p.classList.add('force-resizable-limit');
+                parentsToResize.push(p);
+                p = p.parentElement;
+            }
+
+            function doDrag(ev) {
+                const newWidth = startWidth + (ev.clientX - startX);
+                const newHeight = startHeight + (ev.clientY - startY);
+
+                if (newWidth > 300) {
+                    // Меняем ширину ТОЛЬКО видео-контейнера
+                    container.style.width = newWidth + 'px';
+                    container.style.maxWidth = 'none';
+
+                    // Родители расширятся сами, так как у них теперь fit-content в CSS
+                }
+
+                if (newHeight > 150) {
+                    container.style.height = newHeight + 'px';
+                }
+            }
+
+            function stopDrag() {
+                if (globalOverlay.parentNode) globalOverlay.parentNode.removeChild(globalOverlay);
+                if (chat) chat.style.pointerEvents = 'auto';
+                document.removeEventListener('mousemove', doDrag);
+                document.removeEventListener('mouseup', stopDrag);
+            }
+
+            document.addEventListener('mousemove', doDrag);
+            document.addEventListener('mouseup', stopDrag);
+        };
+    }
+
     // Запуск всего
     const init = () => {
         if (!document.body) return setTimeout(init, 100);
@@ -792,7 +1789,22 @@
     };
 
     init();
-    setInterval(applyLogic, 600);
+
+    setInterval(() => {
+        applyLogic();
+
+        // 1. Логика ресайза видео (если включена)
+        if (settings.videoResizer) {
+            initVideoResizer();
+        }
+
+        // 2. Логика кнопки скрытия чата (если включена настройка)
+        updateChatControl();
+
+        initDownloadButtons();
+        initGlobalDownload();
+    }, 800);
+
     new MutationObserver(updateThemeClass).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     window.addEventListener('scroll', applyLogic, {passive: true});
 })();
