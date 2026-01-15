@@ -10,6 +10,7 @@
 // @connect      api.100points.ru
 // @run-at       document-start
 // @require https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js
+// @require https://cdnjs.cloudflare.com/ajax/libs/dom-to-image-more/3.5.0/dom-to-image-more.min.js
 // ==/UserScript==
 
 (function() {
@@ -67,35 +68,35 @@
         { id: 'frosted-mint', name: 'Морозная мята' },
         { id: 'gold-leaf', name: 'Золотая кайма' },
         { id: 'soft-clay', name: 'Мягкая глина (Neumorphism)' },
-{ id: 'aqua-glass', name: 'Морское стекло' },
-{ id: 'ceramic-white', name: 'Белая керамика' },
-{ id: 'blueprint', name: 'Чертеж' },
-{ id: 'industrial-mesh', name: 'Промышленная сетка' },
-{ id: 'pulp-fiction', name: 'Газетная вырезка' },
-{ id: 'sweet-marshmallow', name: 'Зефирный градиент' },
-{ id: 'stamped-card', name: 'Штампованный картон' },
-{ id: 'modern-sketch', name: 'Эскиз карандашом' },
-{ id: 'iridescent-pearl', name: 'Жемчужный блеск' }
+        { id: 'aqua-glass', name: 'Морское стекло' },
+        { id: 'ceramic-white', name: 'Белая керамика' },
+        { id: 'blueprint', name: 'Чертеж' },
+        { id: 'industrial-mesh', name: 'Промышленная сетка' },
+        { id: 'pulp-fiction', name: 'Газетная вырезка' },
+        { id: 'sweet-marshmallow', name: 'Зефирный градиент' },
+        { id: 'stamped-card', name: 'Штампованный картон' },
+        { id: 'modern-sketch', name: 'Эскиз карандашом' },
+        { id: 'iridescent-pearl', name: 'Жемчужный блеск' }
     ];
 
     const hoverAnimations = [
-    { id: 'none', name: 'Нет' },
-    { id: 'float', name: 'Всплытие' },
-    { id: 'glow', name: 'Сияние' },
-    { id: 'scale', name: 'Увеличение' },
-    { id: 'tilt', name: 'Наклон' },
-    { id: 'shake', name: 'Пульсация' },
-    { id: 'glass', name: 'Блеск' },
-    { id: 'border-flow', name: 'Поток границ' },
-    { id: 'shadow-deep', name: 'Глубокая тень' },
-    { id: 'flip-lite', name: 'Микро-разворот' },
-    { id: 'inner-glow', name: 'Внутреннее свечение' },
-    { id: 'bounce', name: 'Прыжок' },
-    { id: 'focus', name: 'Фокус (блюр других)' },
-    { id: 'rainbow', name: 'Радуга' },
-    { id: 'press', name: 'Нажатие' },
-    { id: 'accent', name: 'Заливка цветом' }
-];
+        { id: 'none', name: 'Нет' },
+        { id: 'float', name: 'Всплытие' },
+        { id: 'glow', name: 'Сияние' },
+        { id: 'scale', name: 'Увеличение' },
+        { id: 'tilt', name: 'Наклон' },
+        { id: 'shake', name: 'Пульсация' },
+        { id: 'glass', name: 'Блеск' },
+        { id: 'border-flow', name: 'Поток границ' },
+        { id: 'shadow-deep', name: 'Глубокая тень' },
+        { id: 'flip-lite', name: 'Микро-разворот' },
+        { id: 'inner-glow', name: 'Внутреннее свечение' },
+        { id: 'bounce', name: 'Прыжок' },
+        { id: 'focus', name: 'Фокус (блюр других)' },
+        { id: 'rainbow', name: 'Радуга' },
+        { id: 'press', name: 'Нажатие' },
+        { id: 'accent', name: 'Заливка цветом' }
+    ];
 
     const saveSettings = () => localStorage.setItem('100pts_settings', JSON.stringify(settings));
 
@@ -973,6 +974,121 @@ svg.Z9K3I::after, .ormof::after {
 body[data-theme="dark"] svg.Z9K3I {
     filter: drop-shadow(0 0 10px rgba(119, 90, 250, 0.5)) !important;
 }
+
+/* ============================================================
+   1. ГЛАВНЫЙ ФИКС ЛАЙАУТА (ВИДЕО + ЧАТ)
+   ============================================================ */
+
+/* Базовое расположение: Видео + Чат */
+.wCNrd {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+}
+
+/* Видео-контейнер */
+.gDPOa {
+    flex-shrink: 0 !important;
+}
+
+/* Контейнер чата — делаем его шире, как ты просил */
+.vqMgR {
+    flex-grow: 1 !important;
+    min-width: 450px !important; /* Увеличенная ширина */
+    max-width: 600px !important;
+    height: auto !important;
+    display: flex !important;
+    position: relative !important;
+}
+
+/* Сам фрейм чата */
+.vqMgR iframe.vvT_w {
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+}
+
+/* 5. УБИРАЕМ ЛИМИТЫ У ПАРЕНТОВ */
+.force-resizable-limit,
+.wCNrd,
+.react-tabs__tab-panel {
+    max-width: none !important;
+    width: 100% !important;
+}
+
+/* Сброс для родителя: если мы не в режиме ресайза, возвращаем стандарт */
+.wCNrd:not(:has(.video-resizer-handle)) {
+    display: block !important; /* Или какой там был стандарт у Kinescope */
+    height: auto !important;
+}
+
+/* Прячем ручку, если скрипт ресайза просто скрывает её, а не удаляет */
+.resizer-hidden .video-resizer-handle {
+    display: none !important;
+}
+
+/* Фикс для родителя, чтобы кнопка не улетала */
+.wCNrd {
+    position: relative !important;
+}
+
+/* Состояние скрытого чата */
+.vqMgR.chat-hidden {
+    display: none !important; /* Полностью убираем из потока */
+}
+
+/* Если чат скрыт, заставляем видео занять 100% */
+.vqMgR.chat-hidden + .gDPOa,
+.gDPOa:has(+ .vqMgR.chat-hidden),
+.wCNrd:has(.chat-hidden) .gDPOa {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 100% !important;
+}
+
+/* Гарантируем, что кнопка не перекроется плеером */
+.chat-close-btn {
+    pointer-events: auto !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.vqMgR.chat-hidden .chat-close-btn {
+    /* Когда чат скрыт, кнопка должна остаться видна (например, поверх видео) */
+    position: fixed;
+    right: 30px;
+    top: 100px; /* Подстрой под интерфейс */
+}
+
+/* Прячем сам контейнер чата */
+.vqMgR.chat-hidden {
+    display: none !important;
+    width: 0 !important;
+    flex: 0 0 0 !important;
+}
+
+/* Кнопка, когда чат скрыт (выплывает сбоку) */
+.chat-close-btn.floating-toggle {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    z-index: 2147483647 !important;
+    background: #FF4747 !important; /* Красная, чтобы заметно */
+}
+
+/* Фикс для видео, когда чат скрыт */
+.wCNrd:has(.chat-hidden) .gDPOa {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Глобальное подавление ассистивных элементов MathJax */
+mjx-assistive-mml {
+    opacity: 0 !important;
+    clip: rect(1px, 1px, 1px, 1px) !important;
+    user-select: none !important;
+}
     `);
 
     function updateThemeClass() {
@@ -1181,7 +1297,7 @@ body[data-theme="dark"] svg.Z9K3I {
 
             <div class="menu-section">
                 <div class="menu-checkbox-section">
-                    <label>Ресайз видео (тяни за угол)</label>
+                    <label>Ресайз видео (лучше не убирай галочку, оно того не стоит)</label>
                     <input type="checkbox" class="pts-checkbox" data-setting="videoResizer" ${settings.videoResizer ? 'checked' : ''}>
                 </div>
             </div>
@@ -1252,37 +1368,37 @@ body[data-theme="dark"] svg.Z9K3I {
     toggleCaptureVisibility();
 
     function applyCardEffects(element, percent, finalColor) {
-    if (!element) return;
+        if (!element) return;
 
-    // 1. Управляем СТИЛЕМ (style-...)
-    const currentClasses = Array.from(element.classList);
-    currentClasses.forEach(cls => {
-        // Удаляем старый стиль, только если он отличается от выбранного
-        if (cls.startsWith('style-') && cls !== 'style-' + settings.cardStyle) {
-            element.classList.remove(cls);
+        // 1. Управляем СТИЛЕМ (style-...)
+        const currentClasses = Array.from(element.classList);
+        currentClasses.forEach(cls => {
+            // Удаляем старый стиль, только если он отличается от выбранного
+            if (cls.startsWith('style-') && cls !== 'style-' + settings.cardStyle) {
+                element.classList.remove(cls);
+            }
+            // Удаляем анимацию, если она сменилась
+            if (cls.startsWith('hover-') && cls !== 'hover-' + settings.hoverAnim) {
+                element.classList.remove(cls);
+            }
+        });
+
+        // 2. Устанавливаем цвет (важно для всех стилей)
+        element.style.setProperty('--card-color', finalColor);
+
+        // 3. Применяем стиль карточки
+        if (settings.cardStyle && settings.cardStyle !== 'default') {
+            element.classList.add('custom-card-active');
+            element.classList.add('style-' + settings.cardStyle);
+        } else {
+            element.classList.remove('custom-card-active');
         }
-        // Удаляем анимацию, если она сменилась
-        if (cls.startsWith('hover-') && cls !== 'hover-' + settings.hoverAnim) {
-            element.classList.remove(cls);
+
+        // 4. Применяем анимацию
+        if (settings.hoverAnim && settings.hoverAnim !== 'none') {
+            element.classList.add('hover-' + settings.hoverAnim);
         }
-    });
-
-    // 2. Устанавливаем цвет (важно для всех стилей)
-    element.style.setProperty('--card-color', finalColor);
-
-    // 3. Применяем стиль карточки
-    if (settings.cardStyle && settings.cardStyle !== 'default') {
-        element.classList.add('custom-card-active');
-        element.classList.add('style-' + settings.cardStyle);
-    } else {
-        element.classList.remove('custom-card-active');
     }
-
-    // 4. Применяем анимацию
-    if (settings.hoverAnim && settings.hoverAnim !== 'none') {
-        element.classList.add('hover-' + settings.hoverAnim);
-    }
-}
 
     function processCourseCard(courseCard) {
         // 1. Ищем процент прохождения курса (в селекторе .ZP0bu)
@@ -1509,67 +1625,98 @@ body[data-theme="dark"] svg.Z9K3I {
         setTimeout(() => toast.remove(), 2000);
     }
 
-    async function downloadAllHomework(btn) {
-        const taskButtons = document.querySelectorAll('.Hlt15'); // Кнопки номеров 1, 2, 3...
-        if (taskButtons.length === 0) return;
 
-        const originalActive = document.querySelector('.Hlt15.HqV_y'); // Запоминаем текущую
-        btn.disabled = true;
-        btn.innerText = '⌛ Загрузка...';
-
-        for (let i = 0; i < taskButtons.length; i++) {
-            const tBtn = taskButtons[i];
-            tBtn.click(); // Переключаем задачу
-
-            btn.innerText = `📸 Задание ${i + 1}/${taskButtons.length}`;
-
-            // Ждем подгрузки контента (ждем, пока появится текст внутри .ck-content)
-            await new Promise(resolve => {
-                let checks = 0;
-                const interval = setInterval(() => {
-                    const content = document.querySelector('.ck-content');
-                    // Проверяем, что текст обновился (не пустой и не старый)
-                    if (content && content.innerText.length > 10 || checks > 20) {
-                        clearInterval(interval);
-                        setTimeout(resolve, 500); // Небольшая пауза для рендера формул
-                    }
-                    checks++;
-                }, 100);
+    // Вспомогательная функция для глубокой подготовки медиа перед захватом
+    async function preloadImages(element) {
+        const imgs = Array.from(element.querySelectorAll('img'));
+        const promises = imgs.map(img => {
+            return new Promise((resolve) => {
+                if (img.complete && img.naturalHeight !== 0) {
+                    resolve();
+                } else {
+                    img.onload = () => resolve();
+                    img.onerror = () => resolve(); // Игнорируем битые, чтобы не вешать процесс
+                }
             });
-
-            // Делаем скриншот текущей подгруженной задачи
-            const taskElement = document.querySelector('.dJ46J');
-            const captureBtn = taskElement.querySelector('.download-task-btn');
-
-            // Используем твою логику захвата, но без Clipboard (чтобы не спамить в буфер)
-            await silentTaskCapture(taskElement, captureBtn);
-        }
-
-        // Возвращаемся в начало
-        if (originalActive) originalActive.click();
-        btn.disabled = false;
-        btn.innerText = '✅ Готово!';
-        setTimeout(() => { btn.innerText = '📥 Скачать всё (PNG)'; }, 3000);
+        });
+        // Также обрабатываем фоновые изображения, если они есть
+        return Promise.all(promises);
     }
 
-    // Упрощенная версия захвата без буфера обмена для массовой скачки
-    async function silentTaskCapture(taskElement, btn) {
-        if (btn) btn.style.visibility = 'hidden';
-        try {
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            const canvas = await html2canvas(taskElement, {
-                backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF',
-                scale: 2,
-                useCORS: true
-            });
-            const link = document.createElement('a');
-            const taskName = taskElement.querySelector('.XZTcz')?.innerText || 'Task';
-            link.download = `${taskName.replace(/[^a-zа-я0-9]/gi, '_')}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        } catch (e) {}
-        if (btn) btn.style.visibility = 'visible';
+async function downloadAllHomework(btn) {
+    const taskButtons = document.querySelectorAll('.Hlt15'); // Кнопки номеров задач
+    if (taskButtons.length === 0) return;
+
+    const originalActive = document.querySelector('.Hlt15.HqV_y'); // Запоминаем текущую
+    btn.disabled = true;
+    btn.innerText = '⌛ Загрузка...';
+
+    for (let i = 0; i < taskButtons.length; i++) {
+        const tBtn = taskButtons[i];
+        tBtn.click(); // Переключаем задачу
+
+        btn.innerText = `📸 Задание ${i + 1}/${taskButtons.length}`;
+
+        // Ждем подгрузки контента (простая проверка по времени и наличию текста)
+        await new Promise(resolve => {
+            let checks = 0;
+            const interval = setInterval(() => {
+                const content = document.querySelector('.ck-content');
+                if ((content && content.innerText.length > 10) || checks > 20) {
+                    clearInterval(interval);
+                    setTimeout(resolve, 600); // Небольшая пауза для отрисовки
+                }
+                checks++;
+            }, 100);
+        });
+
+        const taskElement = document.querySelector('.dJ46J');
+        await silentTaskCapture(taskElement);
     }
+
+    // Возвращаемся в начало
+    if (originalActive) originalActive.click();
+    btn.disabled = false;
+    btn.innerText = '✅ Готово!';
+    setTimeout(() => { btn.innerText = '📥 Скачать всё (PNG)'; }, 3000);
+}
+
+async function silentTaskCapture(taskElement) {
+    try {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+        const canvas = await html2canvas(taskElement, {
+            backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF',
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            onclone: (clonedDoc) => {
+                // РЕШЕНИЕ ИЗ ИНТЕРНЕТА:
+                // Вместо удаления или display:none, ставим прозрачность в 0
+                const assistive = clonedDoc.querySelectorAll('mjx-assistive-mml');
+                assistive.forEach(el => {
+                    el.style.setProperty('display', 'none', 'important'); // на всякий случай
+                    el.style.setProperty('opacity', '0', 'important');    // основное решение
+                    el.style.setProperty('position', 'absolute', 'important');
+                    el.style.setProperty('pointer-events', 'none', 'important');
+                });
+
+                // Также скрываем саму кнопку скачивания в клоне
+                const btnInTask = clonedDoc.querySelector('.download-task-btn');
+                if (btnInTask) btnInTask.style.display = 'none';
+            }
+        });
+
+        const link = document.createElement('a');
+        const taskName = taskElement.querySelector('.XZTcz')?.innerText || 'Task';
+        link.download = `${taskName.replace(/[^a-zа-я0-9]/gi, '_')}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+
+    } catch (e) {
+        console.error("Ошибка при захвате:", e);
+    }
+}
 
     // Функция для вставки кнопки «Скачать всё»
     function initGlobalDownload() {
@@ -1608,67 +1755,29 @@ body[data-theme="dark"] svg.Z9K3I {
     }
 
     function initVideoResizer() {
-        const videoContainers = document.querySelectorAll('.gDPOa');
+        const videoContainer = document.querySelector('.gDPOa');
+        const parentWrapper = document.querySelector('.wCNrd');
 
-        videoContainers.forEach(container => {
-            // Если уголка нет - создаем
-            if (!container.querySelector('.video-resizer-handle')) {
-                const handle = document.createElement('div');
-                handle.className = 'video-resizer-handle';
-                container.appendChild(handle);
+        // Если настройка выключена — вызываем сброс и выходим
+        if (!settings.videoResizer) {
+            resetVideoAndChat();
+            return;
+        }
 
-                handle.onmousedown = function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
+        if (!videoContainer || !parentWrapper) return;
 
-                    // Защитный слой на весь экран
-                    const globalOverlay = document.createElement('div');
-                    Object.assign(globalOverlay.style, {
-                        position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
-                        zIndex: '2147483647', cursor: 'nwse-resize'
-                    });
-                    document.body.appendChild(globalOverlay);
+        // Гарантируем правильную структуру для работы ресайза
+        parentWrapper.style.display = 'flex';
+        parentWrapper.style.flexDirection = 'row';
+        parentWrapper.style.alignItems = 'stretch';
 
-                    const chat = container.parentElement.querySelector('.vqMgR');
-                    if (chat) chat.style.pointerEvents = 'none';
-
-                    const startX = e.clientX;
-                    const startY = e.clientY;
-                    const startWidth = container.offsetWidth;
-                    const startHeight = container.offsetHeight;
-
-                    // Подготовка родителей
-                    let p = container.parentElement;
-                    while (p && p.tagName !== 'MAIN') {
-                        p.classList.add('force-resizable-limit');
-                        p = p.parentElement;
-                    }
-
-                    function doDrag(ev) {
-                        const deltaX = ev.clientX - startX;
-                        const deltaY = ev.clientY - startY;
-
-                        if (startWidth + deltaX > 300) {
-                            container.style.width = (startWidth + deltaX) + 'px';
-                            container.style.maxWidth = 'none';
-                        }
-                        if (startHeight + deltaY > 150) {
-                            container.style.height = (startHeight + deltaY) + 'px';
-                        }
-                    }
-
-                    function stopDrag() {
-                        if (globalOverlay.parentNode) globalOverlay.parentNode.removeChild(globalOverlay);
-                        if (chat) chat.style.pointerEvents = 'auto';
-                        document.removeEventListener('mousemove', doDrag);
-                        document.removeEventListener('mouseup', stopDrag);
-                    }
-
-                    document.addEventListener('mousemove', doDrag);
-                    document.addEventListener('mouseup', stopDrag);
-                };
-            }
-        });
+        let handle = videoContainer.querySelector('.video-resizer-handle');
+        if (!handle) {
+            handle = document.createElement('div');
+            handle.className = 'video-resizer-handle';
+            videoContainer.appendChild(handle);
+            setupResizerEvents(videoContainer, handle);
+        }
     }
 
     // Функция для отрисовки кнопки закрытия
@@ -1694,33 +1803,92 @@ body[data-theme="dark"] svg.Z9K3I {
         }
     }
 
+    // 1. Функция ГЛУБОКОГО сброса
+    function resetVideoAndChat() {
+        console.log("Удаление инструментов ресайза (сохранение структуры)");
+        const handle = document.querySelector('.video-resizer-handle');
+
+        // Удаляем только ручку, чтобы нельзя было менять размер
+        if (handle) {
+            handle.remove();
+        }
+
+        // Мы НЕ удаляем стили у parentWrapper и видео,
+        // чтобы чат не сползал вниз и сохранял текущий размер
+    }
+
+    // 2. Улучшенное управление кнопкой и состоянием
     function updateChatControl() {
         const chatContainer = document.querySelector('.vqMgR');
-        if (!chatContainer) return;
+        const parentWrapper = document.querySelector('.wCNrd'); // Общий родитель видео и чата
 
-        // Если настройка выключена — удаляем кнопку, если она была
+        if (!chatContainer || !parentWrapper) return;
+
+        let closeBtn = document.querySelector('.chat-close-btn');
+
         if (!settings.showChatCloseBtn) {
-            const existingBtn = chatContainer.querySelector('.chat-close-btn');
-            if (existingBtn) existingBtn.remove();
+            if (closeBtn) closeBtn.remove();
             return;
         }
 
-        // Если настройка включена и кнопки еще нет — создаем
-        if (!chatContainer.querySelector('.chat-close-btn')) {
-            const closeBtn = document.createElement('button');
+        if (!closeBtn) {
+            console.log("Создаю кнопку поверх всех элементов");
+            closeBtn = document.createElement('button');
             closeBtn.className = 'chat-close-btn';
             closeBtn.innerText = 'Скрыть чат ✕';
 
-            closeBtn.onclick = () => {
-                chatContainer.classList.toggle('chat-hidden');
-                closeBtn.innerText = chatContainer.classList.contains('chat-hidden')
-                    ? 'Показать чат 👁'
-                : 'Скрыть чат ✕';
+            // Стилизуем кнопку так, чтобы она была ВСЕГДА видна в углу родителя
+            Object.assign(closeBtn.style, {
+                position: 'absolute',
+                zIndex: '2147483647', // Максимальный z-index
+                top: '10px',
+                right: '10px',
+                padding: '8px 15px',
+                background: '#6161FC',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                display: 'block'
+            });
+
+            closeBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const isHidden = chatContainer.style.display === 'none';
+
+                if (!isHidden) {
+                    // СКРЫВАЕМ
+                    resetVideoAndChat(); // Твоя функция сброса ресайза
+                    chatContainer.style.setProperty('display', 'none', 'important');
+
+                    const video = parentWrapper.querySelector('.gDPOa');
+                    if (video) {
+                        video.style.setProperty('width', '100%', 'important');
+                        video.style.setProperty('max-width', '100%', 'important');
+                        video.style.setProperty('height', 'auto', 'important');
+                    }
+                    closeBtn.innerText = 'Показать чат 👁';
+                } else {
+                    // ПОКАЗЫВАЕМ
+                    chatContainer.style.setProperty('display', 'flex', 'important');
+                    const video = parentWrapper.querySelector('.gDPOa');
+                    if (video) video.style.width = ''; // Возвращаем авто-ширину сайта
+
+                    closeBtn.innerText = 'Скрыть чат ✕';
+                }
             };
 
-            chatContainer.appendChild(closeBtn);
+            // ВАЖНО: Добавляем в parentWrapper, а не в chatContainer
+            parentWrapper.style.position = 'relative'; // Чтобы absolute работал корректно
+            parentWrapper.appendChild(closeBtn);
         }
     }
+
+    // В функции setupResizerEvents ничего менять не нужно,
+    // но убедись, что она не создает дубликаты ручек.
 
     function setupResizerEvents(container, handle) {
         handle.onmousedown = function(e) {
@@ -1780,6 +1948,38 @@ body[data-theme="dark"] svg.Z9K3I {
         };
     }
 
+    async function prepareMediaForScreenshot(element) {
+        const images = element.querySelectorAll('img');
+        const promises = Array.from(images).map(img => {
+            return new Promise((resolve) => {
+                if (img.src.startsWith('data:')) return resolve(); // Уже сконвертировано
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const newImg = new Image();
+
+                newImg.crossOrigin = 'Anonymous'; // Обход CORS
+                newImg.src = img.src;
+
+                newImg.onload = () => {
+                    canvas.width = newImg.width;
+                    canvas.height = newImg.height;
+                    ctx.drawImage(newImg, 0, 0);
+                    try {
+                        img.src = canvas.toDataURL('image/png');
+                    } catch (e) {
+                        console.error("Ошибка конвертации медиа:", e);
+                    }
+                    resolve();
+                };
+
+                newImg.onerror = resolve; // Если не загрузилось, идем дальше
+            });
+        });
+
+        await Promise.all(promises);
+    }
+
     // Запуск всего
     const init = () => {
         if (!document.body) return setTimeout(init, 100);
@@ -1793,13 +1993,27 @@ body[data-theme="dark"] svg.Z9K3I {
     setInterval(() => {
         applyLogic();
 
-        // 1. Логика ресайза видео (если включена)
-        if (settings.videoResizer) {
-            initVideoResizer();
+        try {
+            if (settings.videoResizer) {
+                initVideoResizer();
+            }
+            updateChatControl();
+        } catch (err) {
+            console.error("Ошибка в цикле скрипта:", err);
         }
 
-        // 2. Логика кнопки скрытия чата (если включена настройка)
-        updateChatControl();
+        const parentWrapper = document.querySelector('.wCNrd');
+        const chatContainer = document.querySelector('.vqMgR');
+
+        if (parentWrapper && chatContainer) {
+            // Если чат не скрыт вручную, держим их в ряд
+            if (chatContainer.style.display !== 'none') {
+                parentWrapper.style.display = 'flex';
+                parentWrapper.style.flexDirection = 'row';
+            }
+        }
+
+        initVideoResizer();
 
         initDownloadButtons();
         initGlobalDownload();
