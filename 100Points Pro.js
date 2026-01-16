@@ -1089,6 +1089,381 @@ mjx-assistive-mml {
     clip: rect(1px, 1px, 1px, 1px) !important;
     user-select: none !important;
 }
+
+/* Базовый сброс для всех кнопок навигации */
+.Hlt15 {
+    position: relative !important;
+    opacity: 1 !important;           /* Убираем прозрачность полностью */
+    border: none !important;
+    color: #FFFFFF !important;       /* Белый текст для контраста */
+    font-weight: 800 !important;     /* Жирный текст */
+    transition: all 0.2s ease !important;
+    box-shadow: none !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4) !important;
+}
+
+/* --- ЗЕЛЕНЫЕ (_sXkU) --- */
+.Hlt15._sXkU:not(.MqrGg) {
+    background-color: #2ebc59 !important;
+    box-shadow: 0 0 10px rgba(46, 188, 89, 0.6),
+                0 0 20px rgba(46, 188, 89, 0.4) !important;
+}
+
+/* --- КРАСНЫЕ (YpU_g) --- */
+.Hlt15.YpU_g {
+    background-color: #eb5757 !important;
+    box-shadow: 0 0 10px rgba(235, 87, 87, 0.7),
+                0 0 20px rgba(235, 87, 87, 0.5) !important;
+}
+
+/* --- ЖЕЛТЫЕ (_sXkU MqrGg) --- */
+/* Используем оба класса для точности */
+.Hlt15._sXkU.MqrGg {
+    background-color: #f7b500 !important;
+    color: #000 !important; /* На желтом черный текст лучше */
+    box-shadow: 0 0 10px rgba(247, 181, 0, 0.7),
+                0 0 20px rgba(247, 181, 0, 0.5) !important;
+    text-shadow: none !important;
+}
+
+/* --- ЭФФЕКТ ПРИ НАЖАТИИ (АКТИВАЦИЯ) --- */
+.Hlt15:active {
+    transform: scale(0.88) !important; /* Кнопка "вдавливается" */
+    filter: brightness(1.7) !important; /* Резкая вспышка яркости */
+    box-shadow: 0 0 35px rgba(255, 255, 255, 0.9) !important; /* Белый неоновый взрыв */
+    transition: all 0.05s !important;
+}
+
+/* Эффект при наведении */
+.Hlt15:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+    z-index: 10;
+}
+
+/* ТЕКУЩАЯ КНОПКА (Где находится пользователь) */
+.Hlt15.HqV_y {
+    transform: scale(1.1) !important;
+    outline: 2px solid white !important;
+    outline-offset: 2px;
+    z-index: 5;
+}
+
+/* Если тема светлая, добавим легкую темную подложку под свечение для видимости */
+[data-theme='light'] .Hlt15 {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* --- ОБЩИЙ СТИЛЬ КНОПОК --- */
+.Hlt15 {
+    flex-shrink: 0 !important;
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: 800 !important;
+    font-size: 15px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer !important;
+    position: relative !important;
+    opacity: 1 !important;
+}
+
+/* --- БЕЛЫЕ КНОПКИ (Без спец. классов) --- */
+/* Четкая обводка и черные цифры */
+.Hlt15:not(.jxyvi):not(.YpU_g):not(._sXkU):not(.HqV_y) {
+    background-color: #ffffff !important;
+    color: #1a1a1a !important; /* Черные цифры */
+    border: 2px solid #d1d1d1 !important; /* Заметная обводка */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
+
+/* Если активная кнопка — это обычная белая кнопка, цифры должны быть черными */
+.Hlt15.HqV_y:not(.jxyvi):not(.YpU_g):not(._sXkU) {
+    color: #000000 !important;
+    background-color: #ffffff !important;
+    border: 2px solid #000000 !important;
+}
+
+/* --- ЗЕЛЕНЫЕ (_sXkU) --- */
+.Hlt15._sXkU:not(.MqrGg):not(.jxyvi) {
+    background-color: #2ebc59 !important;
+    color: white !important;
+    box-shadow: 0 0 15px rgba(46, 188, 89, 0.5) !important;
+}
+
+/* --- КРАСНЫЕ (YpU_g) --- */
+.Hlt15.YpU_g:not(.jxyvi) {
+    background-color: #eb5757 !important;
+    color: white !important;
+    box-shadow: 0 0 15px rgba(235, 87, 87, 0.5) !important;
+}
+
+/* --- ЖЕЛТЫЕ (_sXkU MqrGg) --- */
+.Hlt15._sXkU.MqrGg {
+    background-color: #f7b500 !important;
+    color: #000 !important;
+    box-shadow: 0 0 15px rgba(247, 181, 0, 0.5) !important;
+}
+
+/* --- ФИОЛЕТОВЫЕ (jxyvi) --- */
+/* Важно: jxyvi без других меток или в чистом виде */
+.Hlt15.jxyvi:not(._sXkU):not(.YpU_g) {
+    background-color: #9b51e0 !important;
+    color: white !important;
+    box-shadow: 0 0 15px rgba(155, 81, 224, 0.6),
+                inset 0 0 8px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* --- ТЕКУЩАЯ / АКТИВНАЯ (HqV_y) --- */
+.Hlt15.HqV_y {
+    transform: scale(1.15) !important;
+    border: 2px solid #000 !important; /* Выделяем рамкой */
+    z-index: 10 !important;
+}
+
+/* --- ЭФФЕКТ НАЖАТИЯ (ВСПЫШКА) --- */
+.Hlt15:active {
+    transform: scale(0.9) !important;
+    filter: brightness(1.8) !important;
+    box-shadow: 0 0 30px white !important;
+}
+
+/* 1. УВЕЛИЧИВАЕМ КНОПКИ ЗАДАЧ */
+.Hlt15 {
+    flex-shrink: 0 !important;
+    width: 48px !important;  /* Было 42px, теперь 48px */
+    height: 48px !important; /* Было 42px, теперь 48px */
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 17px !important; /* Чуть крупнее цифры */
+    font-weight: 800 !important;
+    scroll-snap-align: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* 2. ВОЗВРАЩАЕМ КНОПКУ "СКАЧАТЬ ВСЁ" */
+/* Гарантируем, что она видна под цепочкой */
+.download-all-tasks-btn {
+    display: block !important;
+    visibility: visible !important;
+    margin: 20px auto !important; /* Отступ сверху 20px, центровка по горизонтали */
+    padding: 14px 40px !important;
+    border-radius: 14px !important;
+    background: #000000 !important;
+    color: #ffffff !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    border: none !important;
+    cursor: pointer !important;
+    width: fit-content !important;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2) !important;
+    z-index: 999 !important; /* Чтобы точно была поверх всего */
+}
+
+.download-all-tasks-btn:hover {
+    background: #222 !important;
+    transform: scale(1.05);
+}
+
+/* 3. КОНТЕЙНЕРЫ (Центровка и прокрутка) */
+.x0P2P {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+    padding: 10px 0 !important;
+}
+
+.QblpJ {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    overflow-x: auto !important; /* Разрешаем прокрутку */
+    scroll-behavior: smooth !important;
+    scrollbar-width: none !important;
+}
+
+.QblpJ::-webkit-scrollbar {
+    display: none !important;
+}
+
+.s_wDL {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 16px !important; /* Больше расстояние для крупных кнопок */
+    padding: 25px 20px !important;
+    margin: 0 auto !important; /* Центрирует, если задач мало */
+    min-width: min-content !important;
+}
+
+/* 4. ФИКС ЦВЕТА ДЛЯ БЕЛЫХ АКТИВНЫХ КНОПОК */
+.Hlt15.HqV_y:not(._sXkU):not(.YpU_g):not(.jxyvi) {
+    color: #000000 !important;
+    background-color: #ffffff !important;
+    border: 3px solid #000000 !important; /* Сделаем рамку потолще */
+}
+
+/* Полностью скрываем стрелки */
+.nEjyO {
+    display: none !important;
+}
+
+/* ИСПРАВЛЕННАЯ ПОДЛОЖКА */
+._9kveE {
+    background: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(12px) !important;
+    border-radius: 30px !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+
+    width: 95% !important;
+    max-width: 1100px !important;
+    margin: 20px auto !important;
+
+    padding: 15px !important; /* Увеличили отступ */
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    /* УБИРАЕМ overflow: hidden, чтобы кнопка не исчезала */
+    overflow: visible !important;
+    box-sizing: border-box !important;
+}
+
+
+/* Если включена темная тема на сайте */
+[data-theme='dark'] ._9kveE {
+    background: rgba(30, 30, 30, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* 1. КРАСИВАЯ ПОДЛОЖКА (Только для цепочки) */
+._9kveE {
+    background: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(12px) !important;
+    border-radius: 30px !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+
+    width: 95% !important;
+    max-width: 1100px !important;
+    margin: 20px auto !important;
+    padding: 15px !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    /* УБИРАЕМ СКРЫТИЕ: чтобы все кнопки внутри были видны */
+    overflow: visible !important;
+    box-sizing: border-box !important;
+}
+
+/* 5. КНОПКА ЗАХВАТА ЗАДАЧИ (Обычно это стандартные кнопки сайта) */
+/* Если у кнопки захвата есть специфический класс, добавь его сюда.
+   Пока делаем её видимой универсально внутри контейнера. */
+.x0P2P .jxyvi:not(.Hlt15) {
+    margin: 10px !important;
+    background-color: #007aff !important; /* Синий цвет для кнопки захвата */
+    color: white !important;
+}
+
+/* Сами кнопки задач */
+.Hlt15 {
+    width: 48px !important;
+    height: 48px !important;
+    flex-shrink: 0 !important;
+}
+
+/* Фикс текста для белой активной кнопки */
+.Hlt15.HqV_y:not(._sXkU):not(._sXkU.MqrGg):not(.YpU_g):not(.jxyvi) {
+    color: #000 !important;
+    border: 3px solid #000 !important;
+    background: #fff !important;
+}
+
+/* Фикс текста для белой активной кнопки */
+.Hlt15.HqV_y:not(._sXkU):not(.YpU_g):not(.jxyvi) {
+    color: #000 !important;
+    border: 3px solid #000 !important;
+    background: #fff !important;
+}
+
+/* Основная подложка-капсула */
+._9kveE {
+    background: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(12px) !important;
+    border-radius: 32px !important; /* Сильное скругление, как ты просил */
+    border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+
+    width: 95% !important;
+    max-width: 1100px !important;
+    margin: 20px auto !important;
+    padding: 15px 10px !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    overflow: hidden !important; /* Чтобы ничего не вылетало за границы скругления */
+}
+
+/* Окно скролла (верхняя часть подложки) */
+.QblpJ {
+    width: 100% !important;
+    overflow-x: auto !important;
+    scroll-behavior: smooth !important;
+    scrollbar-width: none !important; /* Скрываем скроллбар */
+    display: flex !important;
+    padding-bottom: 5px !important;
+}
+
+.QblpJ::-webkit-scrollbar {
+    display: none !important;
+}
+
+/* Лента с кнопками задач */
+.s_wDL {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 12px !important;
+    padding: 10px 20px !important;
+    margin: 0 auto !important; /* Центрирует, если кнопок мало */
+}
+
+/* Кнопка "Скачать всё" (нижняя часть подложки) */
+.download-all-tasks-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    margin-top: 15px !important; /* Отступ от ленты с задачами */
+    padding: 10px 30px !important;
+
+    background: #000000 !important;
+    color: #ffffff !important;
+    border-radius: 12px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+
+    cursor: pointer !important;
+    transition: transform 0.2s ease, opacity 0.2s ease !important;
+    width: fit-content !important;
+    flex-shrink: 0 !important; /* Чтобы кнопка не сжималась */
+}
+
+.download-all-tasks-btn:hover {
+    transform: scale(1.02) !important;
+    opacity: 0.9 !important;
+}
+
+
     `);
 
     function updateThemeClass() {
@@ -1643,80 +2018,80 @@ mjx-assistive-mml {
         return Promise.all(promises);
     }
 
-async function downloadAllHomework(btn) {
-    const taskButtons = document.querySelectorAll('.Hlt15'); // Кнопки номеров задач
-    if (taskButtons.length === 0) return;
+    async function downloadAllHomework(btn) {
+        const taskButtons = document.querySelectorAll('.Hlt15'); // Кнопки номеров задач
+        if (taskButtons.length === 0) return;
 
-    const originalActive = document.querySelector('.Hlt15.HqV_y'); // Запоминаем текущую
-    btn.disabled = true;
-    btn.innerText = '⌛ Загрузка...';
+        const originalActive = document.querySelector('.Hlt15.HqV_y'); // Запоминаем текущую
+        btn.disabled = true;
+        btn.innerText = '⌛ Загрузка...';
 
-    for (let i = 0; i < taskButtons.length; i++) {
-        const tBtn = taskButtons[i];
-        tBtn.click(); // Переключаем задачу
+        for (let i = 0; i < taskButtons.length; i++) {
+            const tBtn = taskButtons[i];
+            tBtn.click(); // Переключаем задачу
 
-        btn.innerText = `📸 Задание ${i + 1}/${taskButtons.length}`;
+            btn.innerText = `📸 Задание ${i + 1}/${taskButtons.length}`;
 
-        // Ждем подгрузки контента (простая проверка по времени и наличию текста)
-        await new Promise(resolve => {
-            let checks = 0;
-            const interval = setInterval(() => {
-                const content = document.querySelector('.ck-content');
-                if ((content && content.innerText.length > 10) || checks > 20) {
-                    clearInterval(interval);
-                    setTimeout(resolve, 600); // Небольшая пауза для отрисовки
+            // Ждем подгрузки контента (простая проверка по времени и наличию текста)
+            await new Promise(resolve => {
+                let checks = 0;
+                const interval = setInterval(() => {
+                    const content = document.querySelector('.ck-content');
+                    if ((content && content.innerText.length > 10) || checks > 20) {
+                        clearInterval(interval);
+                        setTimeout(resolve, 600); // Небольшая пауза для отрисовки
+                    }
+                    checks++;
+                }, 100);
+            });
+
+            const taskElement = document.querySelector('.dJ46J');
+            await silentTaskCapture(taskElement);
+        }
+
+        // Возвращаемся в начало
+        if (originalActive) originalActive.click();
+        btn.disabled = false;
+        btn.innerText = '✅ Готово!';
+        setTimeout(() => { btn.innerText = '📥 Скачать всё (PNG)'; }, 3000);
+    }
+
+    async function silentTaskCapture(taskElement) {
+        try {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+            const canvas = await html2canvas(taskElement, {
+                backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF',
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                onclone: (clonedDoc) => {
+                    // РЕШЕНИЕ ИЗ ИНТЕРНЕТА:
+                    // Вместо удаления или display:none, ставим прозрачность в 0
+                    const assistive = clonedDoc.querySelectorAll('mjx-assistive-mml');
+                    assistive.forEach(el => {
+                        el.style.setProperty('display', 'none', 'important'); // на всякий случай
+                        el.style.setProperty('opacity', '0', 'important');    // основное решение
+                        el.style.setProperty('position', 'absolute', 'important');
+                        el.style.setProperty('pointer-events', 'none', 'important');
+                    });
+
+                    // Также скрываем саму кнопку скачивания в клоне
+                    const btnInTask = clonedDoc.querySelector('.download-task-btn');
+                    if (btnInTask) btnInTask.style.display = 'none';
                 }
-                checks++;
-            }, 100);
-        });
+            });
 
-        const taskElement = document.querySelector('.dJ46J');
-        await silentTaskCapture(taskElement);
+            const link = document.createElement('a');
+            const taskName = taskElement.querySelector('.XZTcz')?.innerText || 'Task';
+            link.download = `${taskName.replace(/[^a-zа-я0-9]/gi, '_')}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+        } catch (e) {
+            console.error("Ошибка при захвате:", e);
+        }
     }
-
-    // Возвращаемся в начало
-    if (originalActive) originalActive.click();
-    btn.disabled = false;
-    btn.innerText = '✅ Готово!';
-    setTimeout(() => { btn.innerText = '📥 Скачать всё (PNG)'; }, 3000);
-}
-
-async function silentTaskCapture(taskElement) {
-    try {
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-
-        const canvas = await html2canvas(taskElement, {
-            backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF',
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            onclone: (clonedDoc) => {
-                // РЕШЕНИЕ ИЗ ИНТЕРНЕТА:
-                // Вместо удаления или display:none, ставим прозрачность в 0
-                const assistive = clonedDoc.querySelectorAll('mjx-assistive-mml');
-                assistive.forEach(el => {
-                    el.style.setProperty('display', 'none', 'important'); // на всякий случай
-                    el.style.setProperty('opacity', '0', 'important');    // основное решение
-                    el.style.setProperty('position', 'absolute', 'important');
-                    el.style.setProperty('pointer-events', 'none', 'important');
-                });
-
-                // Также скрываем саму кнопку скачивания в клоне
-                const btnInTask = clonedDoc.querySelector('.download-task-btn');
-                if (btnInTask) btnInTask.style.display = 'none';
-            }
-        });
-
-        const link = document.createElement('a');
-        const taskName = taskElement.querySelector('.XZTcz')?.innerText || 'Task';
-        link.download = `${taskName.replace(/[^a-zа-я0-9]/gi, '_')}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-
-    } catch (e) {
-        console.error("Ошибка при захвате:", e);
-    }
-}
 
     // Функция для вставки кнопки «Скачать всё»
     function initGlobalDownload() {
@@ -1980,6 +2355,35 @@ async function silentTaskCapture(taskElement) {
         await Promise.all(promises);
     }
 
+    function centerActiveTask() {
+    const activeBtn = document.querySelector('.Hlt15.HqV_y');
+    const container = document.querySelector('.QblpJ');
+    const downloadBtn = document.querySelector('.download-all-tasks-btn');
+    const mainWrapper = document.querySelector('._9kveE');
+
+    if (!container || !activeBtn) return;
+
+    // 1. Центрируем только цепочку номеров
+    const btnRect = activeBtn.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const scrollTarget = container.scrollLeft + (btnRect.left - containerRect.left) - (containerRect.width / 2) + (btnRect.width / 2);
+
+    container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+
+    // 2. Ставим кнопку "Скачать всё" в хвост подложки (вне скролла)
+    if (downloadBtn && mainWrapper && downloadBtn.parentNode !== mainWrapper) {
+        mainWrapper.appendChild(downloadBtn);
+    }
+}
+
+    // Запускаем при загрузке и при кликах на кнопки
+    setTimeout(centerActiveTask, 500);
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('Hlt15') || e.target.closest('.nEjyO')) {
+            setTimeout(centerActiveTask, 50);
+        }
+    });
+
     // Запуск всего
     const init = () => {
         if (!document.body) return setTimeout(init, 100);
@@ -1989,6 +2393,9 @@ async function silentTaskCapture(taskElement) {
     };
 
     init();
+
+    // --- ОСНОВНОЙ ЦИКЛ СКРИПТА ---
+    let lastActiveId = null; // Запоминаем последнюю активную задачу
 
     setInterval(() => {
         applyLogic();
@@ -2006,18 +2413,34 @@ async function silentTaskCapture(taskElement) {
         const chatContainer = document.querySelector('.vqMgR');
 
         if (parentWrapper && chatContainer) {
-            // Если чат не скрыт вручную, держим их в ряд
             if (chatContainer.style.display !== 'none') {
                 parentWrapper.style.display = 'flex';
                 parentWrapper.style.flexDirection = 'row';
             }
         }
 
-        initVideoResizer();
+        // --- АВТО-ЦЕНТРИРОВАНИЕ ---
+        const currentActive = document.querySelector('.Hlt15.HqV_y');
+        if (currentActive) {
+            const currentId = currentActive.innerText;
+            if (currentId !== lastActiveId) {
+                lastActiveId = currentId;
+                // Даем сайту 100мс отрисовать изменения и центрируем
+                setTimeout(centerActiveTask, 100);
+            }
+        }
 
         initDownloadButtons();
         initGlobalDownload();
     }, 800);
+
+    // --- СЛУШАТЕЛЬ КЛИКОВ (для центрирования) ---
+    // Этот блок ставится отдельно, один раз
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('Hlt15') || e.target.closest('.nEjyO')) {
+            setTimeout(centerActiveTask, 50);
+        }
+    });
 
     new MutationObserver(updateThemeClass).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     window.addEventListener('scroll', applyLogic, {passive: true});
