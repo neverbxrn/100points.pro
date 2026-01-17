@@ -25,6 +25,50 @@
         }
     };
 
+    // Глобальное хранилище данных таймера
+    window.MY_TIMER_DATA = {
+        endTime: null,
+        lessonId: null
+    };
+
+    // 1. Перехват FETCH
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+        const response = await originalFetch(...args);
+        const url = args[0];
+        if (typeof url === 'string' && url.includes('/main')) {
+            const clone = response.clone();
+            clone.json().then(data => handleCapturedData(data, url));
+        }
+        return response;
+    };
+
+    // 2. Перехват XHR (на всякий случай)
+    const open = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function() {
+        this.addEventListener('load', () => {
+            if (this.responseURL.includes('/main')) {
+                try {
+                    handleCapturedData(JSON.parse(this.responseText), this.responseURL);
+                } catch (e) {}
+            }
+        });
+        return open.apply(this, arguments);
+    };
+
+    function handleCapturedData(data, url) {
+        const lessonId = url.match(/lessons\/(\d+)\/main/)?.[1];
+        const maxSec = data.homeworks?.max_time_seconds || 0;
+
+        if (lessonId && maxSec > 0) {
+            const endTime = Date.now() + (maxSec * 1000);
+            window.MY_TIMER_DATA = { endTime, lessonId };
+            localStorage.setItem(`timer_v3_${lessonId}`, endTime);
+        } else if (lessonId) {
+            localStorage.setItem(`timer_v3_${lessonId}`, '0'); // Таймер не нужен
+        }
+    }
+
     let authToken = null;
     let retryCount = new Map();
     let lastUrl = location.href;
@@ -42,6 +86,44 @@
         showChatCloseBtn: true
     };
 
+    const cardStyles = [
+        // --- КЛАССИКА И МИНИМАЛИЗМ ---
+        { id: 'pure-white', name: 'Чистый белый' },           // Без границ, только мягкая тень
+        { id: 'border-thin', name: 'Тонкий контур' },         // Едва заметная серая граница
+        { id: 'soft-blue', name: 'Небесный софт' },           // Очень бледный голубой фон
+        { id: 'paper-texture', name: 'Лист бумаги' },         // Эффект наслоения
+
+        // --- СОВРЕМЕННЫЙ ТЕХ-СТИЛЬ ---
+        { id: 'glass-light', name: 'Матовое стекло' },        // Backdrop-filter blur
+        { id: 'neon-border', name: 'Светлый неон' },          // Тонкая светящаяся фиолетовая линия
+        { id: 'cyber-clean', name: 'Светлый киберпанк' },      // Скошенные углы (через clip-path)
+        { id: 'floating', name: 'Левитация' },                // Глубокая тень, эффект высоты
+
+        // --- ЦВЕТОВЫЕ ГРАДИЕНТЫ (СВЕТЛЫЕ) ---
+        { id: 'gradient-peach', name: 'Персиковый закат' },    // Нежный оранжево-розовый
+        { id: 'gradient-mint', name: 'Мятный лед' },          // Свежий бело-зеленый
+        { id: 'gradient-lavender', name: 'Лавандовый сад' },   // Бледно-фиолетовый
+        { id: 'gradient-sunny', name: 'Солнечный блик' },      // Теплый лимонный градиент
+
+        // --- ЭФФЕКТЫ И ТЕКСТУРЫ ---
+        { id: 'neu-flat', name: 'Мягкий неоморфизм' },        // Эффект "выпуклости" (светлые/темные тени)
+        { id: 'outline-dashed', name: 'Пунктир' },            // Творческий стиль в рамке
+        { id: 'shadow-colored', name: 'Цветная тень' },       // Тень цвета бренда (фиолетовая)
+        { id: 'dot-grid', name: 'Точечная сетка' },           // Фон в мелкую точку
+
+        // --- ПРЕМИАЛЬНЫЕ ---
+        { id: 'royal-gold', name: 'Золотая кайма' },          // Тонкий золотистый градиент по краю
+        { id: 'pearl', name: 'Жемчужный' },                   // Перламутровый перелив
+        { id: 'clay', name: 'Глиняный (Claymorphism)' },      // Закругленный, объемный вид
+        { id: 'minimal-list', name: 'Архивный стиль' },        // Акцент на левую границу (полоса)
+
+        { id: 'notebook-line', name: 'Школьная тетрадь' },
+        { id: 'blueprint', name: 'Инженерный чертеж' },
+        { id: 'sticky-note', name: 'Стикер для заметок' },
+        { id: 'graph-paper', name: 'Тетрадь в клетку' },
+        { id: 'clipboard', name: 'Планшет (Clipboard)' }
+    ];
+
     const badgeStyles = [
         { id: 'flat', name: 'Стандартный' },
         { id: 'outline', name: 'Контурный неон' },
@@ -50,52 +132,31 @@
         { id: 'minimal', name: 'Минимализм' }
     ];
 
-    const cardStyles = [
-        { id: 'default', name: 'Стандартная' },
-        { id: 'neon-border', name: 'Контурный неон' },
-        { id: 'glass-card', name: 'Стеклянная' },
-        { id: 'cyber-card', name: 'Киберпанк (Светлый)' },
-        { id: 'minimal-card', name: 'Тонкий акцент' },
-        // --- НОВЫЕ 10 СТИЛЕЙ ---
-        { id: 'soft-ocean', name: 'Мягкий океан' },
-        { id: 'paper-sheet', name: 'Лист бумаги' },
-        { id: 'gradient-glow', name: 'Градиентное сияние' },
-        { id: 'shadow-depth', name: 'Глубокая тень' },
-        { id: 'brutalist', name: 'Брутализм' },
-        { id: 'dot-grid', name: 'Точечная сетка' },
-        { id: 'rainbow-edge', name: 'Радужная грань' },
-        { id: 'neo-retro', name: 'Нео-ретро' },
-        { id: 'frosted-mint', name: 'Морозная мята' },
-        { id: 'gold-leaf', name: 'Золотая кайма' },
-        { id: 'soft-clay', name: 'Мягкая глина (Neumorphism)' },
-        { id: 'aqua-glass', name: 'Морское стекло' },
-        { id: 'ceramic-white', name: 'Белая керамика' },
-        { id: 'blueprint', name: 'Чертеж' },
-        { id: 'industrial-mesh', name: 'Промышленная сетка' },
-        { id: 'pulp-fiction', name: 'Газетная вырезка' },
-        { id: 'sweet-marshmallow', name: 'Зефирный градиент' },
-        { id: 'stamped-card', name: 'Штампованный картон' },
-        { id: 'modern-sketch', name: 'Эскиз карандашом' },
-        { id: 'iridescent-pearl', name: 'Жемчужный блеск' }
+    const fontStyles = [
+        { id: 'default', name: 'Системный' },
+        { id: 'Inter', name: 'Inter (Тонкий)' },
+        { id: 'Montserrat', name: 'Montserrat' },
+        { id: 'Raleway', name: 'Raleway (Стильный)' },
+        { id: 'Exo 2', name: 'Exo 2 (Футуристичный)' },
+        { id: 'Quicksand', name: 'Quicksand (Мягкий)' },
+        { id: 'Tenor Sans', name: 'Tenor Sans (Элегант)' },
+        { id: 'Work Sans', name: 'Work Sans (Минимализм)' },
+        { id: 'Titillium Web', name: 'Titillium (Техно)' },
+        { id: 'Kanit', name: 'Kanit (Тонкий закругленный)' },
+        { id: 'Source Code Pro', name: 'Source Code (Кодерский)' },
+        { id: 'Unbounded', name: 'Unbounded' },
+        { id: 'JetBrains Mono', name: 'JetBrains' },
+        { id: 'Oswald', name: 'Oswald' },
+        { id: 'Roboto', name: 'Roboto (Ультра-тонкий)' },
+        { id: 'Nanum Gothic', name: 'Nanum Gothic' }
     ];
 
     const hoverAnimations = [
         { id: 'none', name: 'Нет' },
-        { id: 'float', name: 'Всплытие' },
-        { id: 'glow', name: 'Сияние' },
+        { id: 'lift', name: 'Подъем' },
         { id: 'scale', name: 'Увеличение' },
-        { id: 'tilt', name: 'Наклон' },
-        { id: 'shake', name: 'Пульсация' },
-        { id: 'glass', name: 'Блеск' },
-        { id: 'border-flow', name: 'Поток границ' },
-        { id: 'shadow-deep', name: 'Глубокая тень' },
-        { id: 'flip-lite', name: 'Микро-разворот' },
-        { id: 'inner-glow', name: 'Внутреннее свечение' },
-        { id: 'bounce', name: 'Прыжок' },
-        { id: 'focus', name: 'Фокус (блюр других)' },
-        { id: 'rainbow', name: 'Радуга' },
-        { id: 'press', name: 'Нажатие' },
-        { id: 'accent', name: 'Заливка цветом' }
+        { id: 'glow', name: 'Сияние' },
+        { id: 'float', name: 'Левитация' }
     ];
 
     const saveSettings = () => localStorage.setItem('100pts_settings', JSON.stringify(settings));
@@ -111,7 +172,7 @@
 
     // --- ПОЛНЫЙ ВИЗУАЛЬНЫЙ ПАКЕТ (СТИЛИ 6.2 + ПОСТ-ПРОЦЕССИНГ БАР) ---
     GM_addStyle(`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono:wght@700&family=Montserrat:wght@700;900&family=Oswald:wght@500&family=Pacifico&family=Playfair+Display:wght@700&family=Raleway:wght@700&family=Roboto:wght@400;700&family=Ubuntu:wght@500&family=Unbounded:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@200;300&family=Inter:wght@300;400&family=JetBrains+Mono:wght@300;700&family=Kanit:wght@200;300&family=Montserrat:wght@200;700&family=Nanum+Gothic:wght@400&family=Oswald:wght@300;500&family=Quicksand:wght@300;400&family=Raleway:wght@200;700&family=Roboto:wght@100;400&family=Source+Code+Pro:wght@200;400&family=Tenor+Sans&family=Titillium+Web:wght@200;400&family=Ubuntu:wght@300;500&family=Unbounded:wght@300;700&family=Work+Sans:wght@200;400&display=swap');
 
         /* КАРТОЧКИ КУРСОВ И УРОКОВ */
 
@@ -1463,12 +1524,178 @@ mjx-assistive-mml {
     opacity: 0.9 !important;
 }
 
+/* ГЛАВНАЯ ПОДЛОЖКА */
+._9kveE {
+    display: flex !important;
+    flex-direction: column !important; /* Задачи сверху, кнопка снизу */
+    align-items: center !important;    /* Центрирует всё по горизонтали */
 
+    background: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(12px) !important;
+    border-radius: 35px !important;    /* Скругление еще сильнее */
+    border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+
+    width: 95% !important;
+    max-width: 1100px !important;
+    margin: 20px auto !important;
+    padding: 15px 0 !important;
+    overflow: hidden !important;
+    position: relative !important;
+}
+
+/* КОНТЕЙНЕР СКРОЛЛА (Верхний ярус) */
+.QblpJ {
+    width: 100% !important;
+    overflow-x: auto !important;
+    display: flex !important;
+    scrollbar-width: none !important;
+    margin-bottom: 10px !important; /* Отступ до кнопки */
+}
+.QblpJ::-webkit-scrollbar { display: none !important; }
+
+/* ЛЕНТА ЗАДАЧ */
+.s_wDL {
+    display: flex !important;
+    gap: 12px !important;
+    padding: 10px 20px !important;
+    width: max-content !important; /* Растягивается по задачам */
+    margin: 0 auto !important;      /* Центрирует, если задач мало */
+}
+
+/* КНОПКА "СКАЧАТЬ ВСЁ" (Нижний ярус) */
+.download-all-tasks-btn {
+    /* Отменяем влияние flex-потока для стабильности */
+    position: relative !important;
+    display: flex !important;
+
+    /* Оформление */
+    background: #000 !important;
+    color: #fff !important;
+    padding: 12px 35px !important;
+    border-radius: 14px !important;
+    font-weight: 700 !important;
+    font-size: 15px !important;
+
+    /* Центровка */
+    margin: 10px 0 5px 0 !important;
+    width: fit-content !important;
+    cursor: pointer !important;
+    z-index: 100 !important;
+}
+
+/* Полностью вырезаем родной таймер из верстки */
+.swNXM {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+}
+
+/* Наш новый контейнер на месте .swNXM */
+.custom-timer-container {
+    background: rgba(255, 255, 255, 0.6) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    border-radius: 12px !important;
+    padding: 8px 16px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    margin: 10px 0 !important;
+}
+
+.custom-timer-content {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.custom-timer-label {
+    color: #636e72 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+.custom-timer-value {
+    color: #2d3436 !important;
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    font-family: 'Courier New', monospace !important; /* Моноширинный шрифт, чтобы цифры не дергались */
+}
+
+/* Эффект для малого количества времени */
+.timer-low {
+    color: #d63031 !important;
+    text-shadow: 0 0 8px rgba(214, 48, 49, 0.3) !important;
+}
+
+@keyframes timer-pulse {
+    from { opacity: 1; }
+    to { opacity: 0.7; }
+}
+
+.menu-group-title {
+    font-weight: 800;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #775AFA;
+    margin: 15px 0 8px 0;
+    letter-spacing: 1px;
+}
+
+.menu-divider {
+    margin: 10px 0;
+    border: 0;
+    border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+/* Стили для кнопок номеров заданий в ДЗ */
+.Hlt15 {
+    width: var(--task-btn-size, 40px) !important;
+    height: var(--task-btn-size, 40px) !important;
+    border-radius: var(--task-btn-radius, 50%) !important;
+    min-width: var(--task-btn-size, 40px) !important;
+}
+
+/* Стили для плашек статуса на карточках */
+.badge-class-name-here { /* замени на актуальный класс плашек */
+    font-size: var(--badge-size, 12px) !important;
+}
     `);
 
     function updateThemeClass() {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark' || document.body.getAttribute('data-theme') === 'dark';
         document.body.classList.toggle('is-dark-mode', isDark);
+    }
+
+    function playTimerAlert() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            // Тип звука: 'sine', 'square', 'sawtooth', 'triangle'
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // Нота Ля
+
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.5);
+
+            console.log("🔊 Звуковой сигнал таймера сработал");
+        } catch (e) {
+            console.error("Не удалось воспроизвести звук:", e);
+        }
     }
 
     function applyStatusToDOM(status, badge, lessonNode, deadline = null) {
@@ -1538,63 +1765,178 @@ mjx-assistive-mml {
         let css = '';
         const cardScale = (settings.cardPadding || 100) / 100;
 
-        // --- 1. МАСШТАБ И ШРИФТЫ ---
+        // --- 1. ПРИМЕНЕНИЕ CSS ПЕРЕМЕННЫХ К ROOT ---
+        const root = document.documentElement;
+        root.style.setProperty('--task-btn-size', `${settings.taskBtnSize || 40}px`);
+        root.style.setProperty('--task-btn-radius', `${settings.taskBtnRadius || 50}%`);
+        root.style.setProperty('--badge-size', `${settings.badgeSize || 12}px`);
+        root.style.setProperty('--card-pad', `${settings.cardInnerPadding || 15}px`);
+        root.style.setProperty('--card-rad', `${settings.cardBorderRadius || 20}px`);
+
+        // --- 2. БАЗОВАЯ ГЕОМЕТРИЯ И МАСШТАБ ---
         css += `
         .mUkKn {
             zoom: ${cardScale} !important;
             transform-origin: top center !important;
+            padding: var(--card-pad) !important;
+            border-radius: var(--card-rad) !important;
+            overflow: hidden !important;
+            transition: all 0.3s ease !important;
+            -webkit-font-smoothing: antialiased;
         }
-        .mUkKn, .mUkKn * {
-            font-size: ${settings.fontSize}px !important;
+        .mUkKn, .mUkKn * { font-size: ${settings.fontSize}px !important; }
+        .Hlt15 {
+            width: var(--task-btn-size) !important;
+            height: var(--task-btn-size) !important;
+            min-width: var(--task-btn-size) !important;
+            border-radius: var(--task-btn-radius) !important;
+            display: flex !important; align-items: center !important; justify-content: center !important;
         }
+        .dUBAa, .DLW6Q, .ovZ4y, [class*="status"], [class*="badge"] { font-size: var(--badge-size) !important; }
+        .custom-timer-container { display: ${settings.showCustomTimer !== false ? 'block' : 'none'} !important; }
     `;
 
+        // --- 3. ШРИФТЫ (Включая тонкие) ---
+        const thinFonts = ['Inter', 'Raleway', 'Exo 2', 'Quicksand', 'Work Sans', 'Titillium Web', 'Kanit', 'Source Code Pro', 'Roboto'];
+        const fontWeight = thinFonts.includes(settings.fontStyle) ? '300' : '700';
+
         if (settings.fontStyle && settings.fontStyle !== 'default') {
-            css += `.mUkKn, .mUkKn div, .mUkKn span, .mUkKn a, .mUkKn h1, .mUkKn h2, .mUkKn h3, .mUkKn p, .mUkKn button { font-family: '${settings.fontStyle}', sans-serif !important; }`;
+            css += `
+            .mUkKn, .mUkKn div, .mUkKn span, .mUkKn a, .mUkKn h1, .mUkKn h2, .mUkKn h3, .mUkKn p, .mUkKn button, .Hlt15 {
+                font-family: '${settings.fontStyle}', sans-serif !important;
+                font-weight: ${fontWeight} !important;
+            }
+        `;
         }
 
-        // --- 2. ЭФФЕКТ BLOOM (НЕОН) ---
-        // Если выбран стандартный неоновый бар, добавляем ему многослойное свечение
+        // --- 4. ЛОГИКА АНИМАЦИЙ ---
+        if (settings.hoverAnim === 'lift') {
+            css += `.mUkKn:hover { transform: translateY(-8px) !important; }`;
+        } else if (settings.hoverAnim === 'scale') {
+            css += `.mUkKn:hover { transform: scale(1.03) !important; }`;
+        } else if (settings.hoverAnim === 'glow') {
+            css += `.mUkKn:hover { box-shadow: 0 10px 30px rgba(119, 90, 250, 0.3) !important; }`;
+        } else if (settings.hoverAnim === 'float') {
+            css += `@keyframes pts-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+                .mUkKn:hover { animation: pts-float 2s ease-in-out infinite !important; }`;
+        }
+
+        // --- 5. ТВОИ 20 СТИЛЕЙ КАРТОЧЕК ---
+        switch (settings.cardStyle) {
+            case 'pure-white': css += `.mUkKn { background: #fff !important; border: none !important; box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important; }`; break;
+            case 'border-thin':
+                css += `.mUkKn { background: #fff !important; border: 1.5px solid #f0f0f5 !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important; }`;
+                break;
+            case 'soft-blue':
+                css += `.mUkKn { background: #f8faff !important; border: 1px solid #eef2ff !important; box-shadow: 0 4px 12px rgba(121, 155, 254, 0.1) !important; }`;
+                break;
+            case 'paper-texture':
+                css += `.mUkKn { background: #fff !important; border: 1px solid #f0f0f0 !important; box-shadow: 0 1px 1px rgba(0,0,0,0.1), 0 2px 2px rgba(0,0,0,0.1), 0 4px 4px rgba(0,0,0,0.1) !important; }`;
+                break;
+            case 'glass-light':
+                css += `.mUkKn { background: rgba(255, 255, 255, 0.7) !important; backdrop-filter: blur(15px) saturate(160%) !important; border: 1px solid rgba(255, 255, 255, 0.5) !important; box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07) !important; }`;
+                break;
+            case 'neon-border':
+                css += `.mUkKn { background: #fff !important; border: 1.5px solid #775AFA !important; box-shadow: 0 0 10px rgba(119, 90, 250, 0.2), inset 0 0 5px rgba(119, 90, 250, 0.1) !important; }`;
+                break;
+            case 'cyber-clean':
+                css += `.mUkKn { background: #fff !important; border-left: 4px solid #775AFA !important; border-top: 1px solid #eee !important; border-right: 1px solid #eee !important; border-bottom: 4px solid #eee !important; transition: all 0.2s !important; }`;
+                break;
+            case 'floating':
+                css += `.mUkKn { background: #fff !important; box-shadow: 0 15px 35px rgba(0,0,0,0.05), 0 5px 15px rgba(0,0,0,0.03) !important; transform: translateY(-2px); }`;
+                break;
+            case 'gradient-peach': css += `.mUkKn { background: linear-gradient(135deg, #fff5f5 0%, #fff0e6 100%) !important; border: none !important; }`; break;
+            case 'gradient-mint': css += `.mUkKn { background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%) !important; border: none !important; }`; break;
+            case 'gradient-lavender': css += `.mUkKn { background: linear-gradient(135deg, #f9f7ff 0%, #f0ebff 100%) !important; border: none !important; }`; break;
+            case 'gradient-sunny': css += `.mUkKn { background: linear-gradient(135deg, #fffdf0 0%, #fff9db 100%) !important; border: none !important; }`; break;
+            case 'neu-flat': css += `.mUkKn { background: #f0f2f5 !important; border: none !important; box-shadow: 6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff !important; }`; break;
+            case 'outline-dashed': css += `.mUkKn { background: #fff !important; border: 2px dashed #d1d5db !important; box-shadow: none !important; }`; break;
+            case 'shadow-colored': css += `.mUkKn { background: #fff !important; border: none !important; box-shadow: 0 10px 25px rgba(119, 90, 250, 0.15) !important; }`; break;
+            case 'dot-grid': css += `.mUkKn { background: #fff !important; background-image: radial-gradient(#e5e7eb 1px, transparent 1px) !important; background-size: 15px 15px !important; border: 1px solid #eee !important; }`; break;
+            case 'royal-gold': css += `.mUkKn { background: #fff !important; border: 1px solid #f3e5ab !important; box-shadow: 0 0 15px rgba(243, 229, 171, 0.3) !important; }`; break;
+            case 'pearl': css += `.mUkKn { background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%) !important; position: relative !important; overflow: hidden !important; } .mUkKn::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 70%) !important; }`; break;
+            case 'clay': css += `.mUkKn { background: #fff !important; box-shadow: inset 4px 4px 8px #f0f2f5, 0 12px 24px -8px rgba(0,0,0,0.1) !important; border-radius: 30px !important; }`; break;
+            case 'minimal-list': css += `.mUkKn { background: #fff !important; border: none !important; border-left: 6px solid #775AFA !important; box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important; }`; break;
+            case 'notebook-line':
+                css += `
+                .mUkKn {
+                    background: #fff !important;
+                    background-image: linear-gradient(#919191 1px, transparent 1px) !important;
+                    background-size: 100% 2.5em !important;
+                    border-left: 2px solid #ffadad !important;
+                    box-shadow: 2px 2px 10px rgba(0,0,0,0.05) !important;
+                    line-height: 2.5em !important;
+                }
+            `; break;
+
+            case 'blueprint':
+                css += `
+                .mUkKn {
+                    background-color: #f0f7ff !important;
+                    background-image:
+                        linear-gradient(rgba(119, 90, 250, 0.1) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(119, 90, 250, 0.1) 1px, transparent 1px) !important;
+                    background-size: 20px 20px !important;
+                    border: 2px solid #775AFA !important;
+                    position: relative !important;
+                }
+                .mUkKn::before {
+                    content: 'REF. 100PTS'; position: absolute; top: 5px; right: 10px;
+                    font-size: 8px !important; color: #775AFA; opacity: 0.5; font-family: monospace;
+                }
+            `; break;
+
+            case 'sticky-note':
+                css += `
+                .mUkKn {
+                    background: #fff9c4 !important;
+                    border: none !important;
+                    border-bottom-right-radius: 40px 5px !important;
+                    box-shadow: 5px 5px 15px rgba(0,0,0,0.1) !important;
+                    transform: rotate(-1deg) !important;
+                }
+                .mUkKn:hover { transform: rotate(0deg) scale(1.02) !important; }
+            `; break;
+
+            case 'graph-paper':
+                css += `
+                .mUkKn {
+                    background: #fff !important;
+                    background-image:
+                        linear-gradient(#e0e0e0 1px, transparent 1px),
+                        linear-gradient(90deg, #e0e0e0 1px, transparent 1px) !important;
+                    background-size: 15px 15px !important;
+                    border: 1px solid #ccc !important;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
+                }
+            `; break;
+
+            case 'clipboard':
+                css += `
+                .mUkKn {
+                    background: #fff !important;
+                    border-top: 15px solid #d1d5db !important;
+                    border-radius: 8px !important;
+                    box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+                    position: relative !important;
+                }
+                .mUkKn::after {
+                    content: ''; position: absolute; top: -25px; left: 50%;
+                    transform: translateX(-50%); width: 40px; height: 20px;
+                    background: #9ca3af; border-radius: 4px 4px 0 0;
+                }
+            `; break;
+        }
+
+        // --- 6. ПРОГРЕСС-БАР И АНИМАЦИИ ПЕРЕМЕЩЕНИЯ ---
         if (settings.barStyle === 'default') {
-            css += `
-            .D0VIa {
-                position: relative !important;
-                /* Эффект Bloom через множественные тени */
-                box-shadow: 0 0 5px currentColor,
-                            0 0 10px currentColor,
-                            0 0 20px currentColor !important;
-                transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease !important;
-            }
-            /* Дополнительный яркий блик внутри для объема */
-            .D0VIa::after {
-                content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-                background: linear-gradient(to bottom, rgba(255,255,255,0.4), transparent, rgba(0,0,0,0.1));
-                border-radius: inherit;
-            }
-        `;
+            css += `.D0VIa { position: relative !important; box-shadow: 0 0 5px currentColor, 0 0 10px currentColor !important; }
+                .D0VIa::after { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to bottom, rgba(255,255,255,0.3), transparent); border-radius: inherit; }`;
+        } else if (settings.barStyle === 'liquid') {
+            css += `.D0VIa { background-image: linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent) !important; background-size: 30px 30px !important; animation: pts-bar-move 2s linear infinite !important; }`;
         }
 
-        // --- 3. ОСТАЛЬНЫЕ СТИЛИ (Liquid, Glass и т.д.) ---
-        if (settings.barStyle === 'liquid') {
-            css += `
-            .D0VIa::before, .D0VIa::after { display: none !important; }
-            .D0VIa {
-                background-image: linear-gradient(45deg, rgba(255,255,255,0.25) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.25) 75%, transparent 75%, transparent) !important;
-                background-size: 40px 40px !important;
-                animation: pts-bar-move 2s linear infinite !important;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.1) !important;
-            }
-        `;
-        }
-
-        // Стили карточек
-        if (settings.lessonStyle === 'glass') {
-            css += `.mUkKn { background: rgba(255, 255, 255, 0.4) !important; backdrop-filter: blur(12px) !important; border: 1px solid rgba(119, 90, 250, 0.3) !important; }`;
-        } else if (settings.lessonStyle === 'soft') {
-            css += `.mUkKn { border: none !important; background: #f0f2ff !important; box-shadow: 8px 8px 15px #d1d9e6, -8px -8px 15px #ffffff !important; }`;
-        }
-
-        css += `@keyframes pts-bar-move { from { background-position: 0 0; } to { background-position: 40px 0; } }`;
+        css += `@keyframes pts-bar-move { from { background-position: 0 0; } to { background-position: 30px 0; } }`;
 
         const styleNode = document.createElement('style');
         styleNode.id = 'pts-dynamic-css';
@@ -1613,97 +1955,107 @@ mjx-assistive-mml {
         const menu = document.createElement('div');
         menu.id = 'pts-menu';
         menu.innerHTML = `
-            <h2 style="margin-bottom: 15px;">100Points Pro</h2>
+        <h2 style="margin-bottom: 15px; text-align: center; border-bottom: 2px solid #775AFA; padding-bottom: 10px;">100Points Pro</h2>
 
-            <div class="menu-section">
-                <label>Стиль карточек</label>
-                <select class="pts-select" data-setting="cardStyle">
-                    ${cardStyles.map(s => `<option value="${s.id}" ${settings.cardStyle === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
-                </select>
+        <div class="menu-group-title">🗂 Карточки и Текст</div>
+
+        <div class="menu-section">
+            <label>Стиль обложки</label>
+            <select class="pts-select" data-setting="cardStyle">
+                ${cardStyles.map(s => `<option value="${s.id}" ${settings.cardStyle === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+            </select>
+        </div>
+
+        <div class="menu-section">
+            <label>Внутренний отступ: <span id="pad-val">${settings.cardInnerPadding || 15}</span>px</label>
+            <input type="range" class="pts-range" data-setting="cardInnerPadding" min="0" max="40" value="${settings.cardInnerPadding || 15}">
+        </div>
+
+        <div class="menu-section">
+            <label>Скругление углов: <span id="rad-val">${settings.cardBorderRadius || 20}</span>px</label>
+            <input type="range" class="pts-range" data-setting="cardBorderRadius" min="0" max="50" value="${settings.cardBorderRadius || 20}">
+        </div>
+
+        <div class="menu-section">
+            <label>Размер меток статуса: <span id="badge-size-val">${settings.badgeSize || 12}</span>px</label>
+            <input type="range" class="pts-range" data-setting="badgeSize" min="8" max="24" value="${settings.badgeSize || 12}">
+        </div>
+
+        <div class="menu-section">
+            <label>Шрифт заголовков</label>
+            <select class="pts-select" data-setting="fontStyle">
+                ${fontStyles.map(f => `<option value="${f.id}" ${settings.fontStyle === f.id ? 'selected' : ''}>${f.name}</option>`).join('')}
+            </select>
+        </div>
+
+        <div class="menu-section">
+            <label>Размер текста: <span id="font-val">${settings.fontSize}</span>px</label>
+            <input type="range" class="pts-range" data-setting="fontSize" min="10" max="24" value="${settings.fontSize}">
+        </div>
+
+        <div class="menu-section">
+            <label>Анимация при наведении</label>
+            <select class="pts-select" data-setting="hoverAnim">
+                ${hoverAnimations.map(a => `<option value="${a.id}" ${settings.hoverAnim === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
+            </select>
+        </div>
+
+        <hr class="menu-divider">
+
+        <div class="menu-group-title">📝 Задания (ДЗ)</div>
+
+        <div class="menu-section">
+            <label>Размер кнопок номеров: <span id="task-size-val">${settings.taskBtnSize || 40}</span>px</label>
+            <input type="range" class="pts-range" data-setting="taskBtnSize" min="25" max="60" value="${settings.taskBtnSize || 40}">
+        </div>
+
+        <div class="menu-section">
+            <label>Скругление номеров: <span id="task-rad-val">${settings.taskBtnRadius || 50}</span>%</label>
+            <input type="range" class="pts-range" data-setting="taskBtnRadius" min="0" max="50" value="${settings.taskBtnRadius || 50}">
+        </div>
+
+        <div class="menu-section">
+            <div class="menu-checkbox-section">
+                <label>🔔 Умный таймер и звуки</label>
+                <input type="checkbox" class="pts-checkbox" data-setting="showCustomTimer" ${settings.showCustomTimer !== false ? 'checked' : ''}>
             </div>
+        </div>
 
-            <div class="menu-section">
-                <label>Стиль плашки (процентов)</label>
-                <select class="pts-select" data-setting="badgeStyle">
-                    ${badgeStyles.map(s => `<option value="${s.id}" ${settings.badgeStyle === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
-                </select>
+        <hr class="menu-divider">
+
+        <div class="menu-group-title">🛠 Инструменты</div>
+
+        <div class="menu-section">
+            <div class="menu-checkbox-section">
+                <label>Ресайз видео</label>
+                <input type="checkbox" class="pts-checkbox" data-setting="videoResizer" ${settings.videoResizer ? 'checked' : ''}>
             </div>
+        </div>
 
-            <div class="menu-section">
-                <label>Анимация при наведении</label>
-                <select class="pts-select" data-setting="hoverAnim">
-                    ${hoverAnimations.map(a => `<option value="${a.id}" ${settings.hoverAnim === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
-                </select>
+        <div class="menu-section">
+            <div class="menu-checkbox-section">
+                <label>Кнопка захвата (📸)</label>
+                <input type="checkbox" class="pts-checkbox" data-setting="showCaptureBtn" ${settings.showCaptureBtn ? 'checked' : ''}>
             </div>
-
-            <div class="menu-section">
-                <label>Тип прогресс-бара</label>
-                <select class="pts-select" data-setting="barStyle">
-                    <option value="default" ${settings.barStyle === 'default' ? 'selected' : ''}>Неоновый</option>
-                    <option value="dynamic" ${settings.barStyle === 'dynamic' ? 'selected' : ''}>Умный градиент</option>
-                    <option value="liquid" ${settings.barStyle === 'liquid' ? 'selected' : ''}>Жидкий</option>
-                    <option value="striped" ${settings.barStyle === 'striped' ? 'selected' : ''}>Полосатый</option>
-                </select>
+            <div class="menu-checkbox-section">
+                <label>Кнопка "Скачать всё" (📥)</label>
+                <input type="checkbox" class="pts-checkbox" data-setting="showMassCaptureBtn" ${settings.showMassCaptureBtn ? 'checked' : ''}>
             </div>
-
-            <div class="menu-section">
-                <label>Шрифт заголовков</label>
-                <select class="pts-select" data-setting="fontStyle">
-                    <option value="default" ${settings.fontStyle === 'default' ? 'selected' : ''}>Системный</option>
-                    <option value="Montserrat" ${settings.fontStyle === 'Montserrat' ? 'selected' : ''}>Montserrat</option>
-                    <option value="Inter" ${settings.fontStyle === 'Inter' ? 'selected' : ''}>Inter</option>
-                    <option value="Unbounded" ${settings.fontStyle === 'Unbounded' ? 'selected' : ''}>Unbounded</option>
-                    <option value="JetBrains Mono" ${settings.fontStyle === 'JetBrains Mono' ? 'selected' : ''}>JetBrains Mono</option>
-                    <option value="Oswald" ${settings.fontStyle === 'Oswald' ? 'selected' : ''}>Oswald</option>
-                </select>
+            <div class="menu-checkbox-section">
+                <label>Кнопка закрытия чата (✕)</label>
+                <input type="checkbox" class="pts-checkbox" data-setting="showChatCloseBtn" ${settings.showChatCloseBtn ? 'checked' : ''}>
             </div>
+        </div>
 
-            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
-
-            <div class="menu-section">
-                <label>Масштаб карточек: <span id="card-val">${settings.cardPadding}</span>%</label>
-                <input type="range" class="pts-range" data-setting="cardPadding" min="70" max="130" value="${settings.cardPadding}">
-            </div>
-
-            <div class="menu-section">
-                <label>Размер текста: <span id="font-val">${settings.fontSize}</span>px</label>
-                <input type="range" class="pts-range" data-setting="fontSize" min="10" max="24" value="${settings.fontSize}">
-            </div>
-
-            <div class="menu-section">
-                <div class="menu-checkbox-section">
-                    <label>Ресайз видео (лучше не убирай галочку, оно того не стоит)</label>
-                    <input type="checkbox" class="pts-checkbox" data-setting="videoResizer" ${settings.videoResizer ? 'checked' : ''}>
-                </div>
-            </div>
-
-            <div class="menu-section">
-                <div class="menu-checkbox-section">
-                    <label>Кнопка захвата задачи (📸)</label>
-                    <input type="checkbox" class="pts-checkbox" data-setting="showCaptureBtn" ${settings.showCaptureBtn ? 'checked' : ''}>
-                </div>
-                <div class="menu-checkbox-section">
-                    <label>Кнопка "Скачать всё" (📥)</label>
-                    <input type="checkbox" class="pts-checkbox" data-setting="showMassCaptureBtn" ${settings.showMassCaptureBtn ? 'checked' : ''}>
-                </div>
-            </div>
-
-            <div class="menu-section">
-                 <div class="menu-checkbox-section">
-                    <label>Кнопка скрытия чата (✕)</label>
-                    <input type="checkbox" class="pts-checkbox" data-setting="showChatCloseBtn" ${settings.showChatCloseBtn ? 'checked' : ''}>
-                 </div>
-            </div>
-
-            <button id="pts-close" style="width: 100%; padding: 12px; background: #775AFA; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; margin-top: 10px;">Готово</button>
-        `;
+        <button id="pts-close">Готово</button>
+    `;
         document.body.appendChild(menu);
 
-        // ЛОГИКА ОТКРЫТИЯ
+        // Логика открытия/закрытия
         btn.onclick = (e) => { e.stopPropagation(); menu.classList.toggle('open'); };
         document.getElementById('pts-close').onclick = () => menu.classList.remove('open');
 
-        // ОБРАБОТКА ВСЕХ ИЗМЕНЕНИЙ (oninput для живого отклика)
+        // Универсальный обработчик изменений
         menu.querySelectorAll('.pts-select, .pts-range, .pts-checkbox').forEach(el => {
             const updateAll = () => {
                 const key = el.dataset.setting;
@@ -1711,19 +2063,30 @@ mjx-assistive-mml {
 
                 if (el.type === 'range') {
                     val = parseInt(val);
-                    const labelId = key === 'fontSize' ? 'font-val' : 'card-val';
-                    document.getElementById(labelId).innerText = val;
+                    // Динамическое обновление текста рядом с ползунком
+                    const displayMap = {
+                        'fontSize': 'font-val',
+                        'cardInnerPadding': 'pad-val',
+                        'cardBorderRadius': 'rad-val',
+                        'taskBtnSize': 'task-size-val',
+                        'taskBtnRadius': 'task-rad-val',
+                        'badgeSize': 'badge-size-val'
+                    };
+                    if (displayMap[key]) document.getElementById(displayMap[key]).innerText = val;
                 }
 
                 settings[key] = val;
                 saveSettings();
 
-                // Специфическая логика для мгновенного скрытия кнопок
-                toggleCaptureVisibility();
-                updateChatControl();
-
+                // Применяем изменения мгновенно
                 updateDynamicStyles();
-                document.querySelectorAll('.mUkKn').forEach(processVisuals);
+                if (window.updateChatControl) updateChatControl();
+
+                // Если выключили таймер — удаляем наш блок
+                if (key === 'showCustomTimer' && !val) {
+                    const myT = document.getElementById('custom-timer-display');
+                    if (myT) myT.closest('.custom-timer-container').remove();
+                }
             };
 
             el.oninput = updateAll;
@@ -1918,11 +2281,6 @@ mjx-assistive-mml {
             if (badge.classList.contains('Plz9L') && !badge.hasAttribute('data-checked')) return;
             processStatusLogic(lesson, badge);
         });
-
-        // --- ОБРАБОТКА КАРТОЧЕК КУРСОВ (НОВОЕ) ---
-        document.querySelectorAll('.UAktb').forEach(courseCard => {
-            processCourseCard(courseCard);
-        });
     }
 
     window.addEventListener('scroll', applyLogic, {passive: true});
@@ -1962,6 +2320,7 @@ mjx-assistive-mml {
             const canvas = await html2canvas(taskElement, {
                 backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF',
                 scale: 2,
+                allowTaint : false,
                 useCORS: true,
                 logging: false
             });
@@ -2355,26 +2714,92 @@ mjx-assistive-mml {
         await Promise.all(promises);
     }
 
-    function centerActiveTask() {
-    const activeBtn = document.querySelector('.Hlt15.HqV_y');
-    const container = document.querySelector('.QblpJ');
-    const downloadBtn = document.querySelector('.download-all-tasks-btn');
-    const mainWrapper = document.querySelector('._9kveE');
+    // Переменные для контроля (вне интервала)
+    let timerDataCaptured = false;
+    let lastActiveId = null;
 
-    if (!container || !activeBtn) return;
+    // --- 2. ЛОГИКА ОБРАБОТКИ ДАННЫХ ---
+    function handleTimerLogic(data, lessonId) {
+        const homework = data.homeworks;
+        if (!homework) return;
 
-    // 1. Центрируем только цепочку номеров
-    const btnRect = activeBtn.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    const scrollTarget = container.scrollLeft + (btnRect.left - containerRect.left) - (containerRect.width / 2) + (btnRect.width / 2);
+        const maxSeconds = homework.max_time_seconds || 0;
 
-    container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+        // Проверка: нужен ли таймер вообще?
+        if (maxSeconds === 0) {
+            console.log("Таймер не предусмотрен для этого урока.");
+            return;
+        }
 
-    // 2. Ставим кнопку "Скачать всё" в хвост подложки (вне скролла)
-    if (downloadBtn && mainWrapper && downloadBtn.parentNode !== mainWrapper) {
-        mainWrapper.appendChild(downloadBtn);
+        // Здесь можно добавить проверку на статус (если дз уже сдано)
+        // Например: if (data.status === 'done') return;
+
+        startPersistentTimer(lessonId, maxSeconds);
     }
-}
+
+    // --- 3. ЗАПУСК И ХРАНЕНИЕ ТАЙМЕРА ---
+    function startPersistentTimer(lessonId, totalSeconds) {
+        const storageKey = `timer_finish_${lessonId}`;
+        let endTime = localStorage.getItem(storageKey);
+
+        if (!endTime) {
+            endTime = Date.now() + (totalSeconds * 1000);
+            localStorage.setItem(storageKey, endTime);
+        }
+
+        // Функция обновления (вызывается в интервале ниже или здесь)
+        window.updateCustomTimerDisplay = () => {
+            const oldTimer = document.querySelector('.swNXM');
+            let display = document.getElementById('custom-timer-display');
+
+            // Если старый таймер есть, а нашего еще нет — заменяем
+            if (oldTimer && !display) {
+                const newTimer = document.createElement('div');
+                newTimer.className = 'custom-timer-container';
+                newTimer.innerHTML = `
+                <div class="custom-timer-content">
+                    <span class="custom-timer-label">Осталось:</span>
+                    <span class="custom-timer-value" id="custom-timer-display">--:--:--</span>
+                </div>
+            `;
+                oldTimer.replaceWith(newTimer);
+                display = document.getElementById('custom-timer-display');
+            }
+
+            if (display) {
+                const now = Date.now();
+                const timeLeft = Math.max(0, Math.floor((endTime - now) / 1000));
+
+                const h = Math.floor(timeLeft / 3600).toString().padStart(2, '0');
+                const m = Math.floor((timeLeft % 3600) / 60).toString().padStart(2, '0');
+                const s = (timeLeft % 60).toString().padStart(2, '0');
+
+                display.innerText = `${h}:${m}:${s}`;
+                if (timeLeft < 600) display.classList.add('timer-low');
+            }
+        };
+    }
+
+    function centerActiveTask() {
+        const activeBtn = document.querySelector('.Hlt15.HqV_y');
+        const container = document.querySelector('.QblpJ');
+        const downloadBtn = document.querySelector('.download-all-tasks-btn');
+        const mainWrapper = document.querySelector('._9kveE');
+
+        if (!container || !activeBtn) return;
+
+        // 1. Центрируем только цепочку номеров
+        const btnRect = activeBtn.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const scrollTarget = container.scrollLeft + (btnRect.left - containerRect.left) - (containerRect.width / 2) + (btnRect.width / 2);
+
+        container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+
+        // 2. Добавляем кнопку ОДИН РАЗ прямо в подложку, если её там нет
+        if (downloadBtn && mainWrapper && downloadBtn.parentNode !== mainWrapper) {
+            mainWrapper.appendChild(downloadBtn);
+        }
+    }
 
     // Запускаем при загрузке и при кликах на кнопки
     setTimeout(centerActiveTask, 500);
@@ -2393,9 +2818,6 @@ mjx-assistive-mml {
     };
 
     init();
-
-    // --- ОСНОВНОЙ ЦИКЛ СКРИПТА ---
-    let lastActiveId = null; // Запоминаем последнюю активную задачу
 
     setInterval(() => {
         applyLogic();
@@ -2416,6 +2838,64 @@ mjx-assistive-mml {
             if (chatContainer.style.display !== 'none') {
                 parentWrapper.style.display = 'flex';
                 parentWrapper.style.flexDirection = 'row';
+            }
+        }
+
+        const oldTimer = document.querySelector('.swNXM');
+        const lessonId = window.location.pathname.match(/\d+/)?.[0];
+
+        if (lessonId) {
+            let savedEndTime = localStorage.getItem(`timer_finish_${lessonId}`);
+
+            // ПАРСИНГ (если в памяти пусто)
+            if (!savedEndTime && oldTimer) {
+                const timeText = oldTimer.querySelector('.ovZ4y')?.innerText;
+                const match = timeText?.match(/(\d{2}):(\d{2}):(\d{2})/);
+                if (match) {
+                    const seconds = parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + parseInt(match[3]);
+                    savedEndTime = Date.now() + (seconds * 1000);
+                    localStorage.setItem(`timer_finish_${lessonId}`, savedEndTime);
+                }
+            }
+
+            if (oldTimer && savedEndTime) {
+                let myTimer = document.getElementById('custom-timer-display');
+                if (!myTimer) {
+                    const container = document.createElement('div');
+                    container.className = 'custom-timer-container';
+                    container.innerHTML = `
+                    <div class="custom-timer-content">
+                        <span class="custom-timer-label">Осталось:</span>
+                        <span class="custom-timer-value" id="custom-timer-display">--:--:--</span>
+                    </div>
+                `;
+                    oldTimer.after(container);
+                    myTimer = document.getElementById('custom-timer-display');
+                }
+
+                const timeLeft = Math.max(0, Math.floor((savedEndTime - Date.now()) / 1000));
+
+                // --- ЛОГИКА ЗВУКОВЫХ УВЕДОМЛЕНИЙ ---
+                const checkAlert = (thresholdSec, label) => {
+                    const alertKey = `alert_${label}_${lessonId}`;
+                    //timeLeft — это секунды, которые мы посчитали выше
+                    if (timeLeft <= thresholdSec && timeLeft > thresholdSec - 5 && !localStorage.getItem(alertKey)) {
+                        playTimerAlert();
+                        localStorage.setItem(alertKey, 'true');
+                    }
+                };
+
+                checkAlert(3600, '1h'); // 1 час
+                checkAlert(1800, '30m'); // 30 минут
+                checkAlert(600, '10m'); // 10 минут
+                // ----------------------------------
+
+                const h = Math.floor(timeLeft / 3600).toString().padStart(2, '0');
+                const m = Math.floor((timeLeft % 3600) / 60).toString().padStart(2, '0');
+                const s = (timeLeft % 60).toString().padStart(2, '0');
+
+                myTimer.innerText = `${h}:${m}:${s}`;
+                if (timeLeft < 600) myTimer.classList.add('timer-low');
             }
         }
 
@@ -2441,6 +2921,16 @@ mjx-assistive-mml {
             setTimeout(centerActiveTask, 50);
         }
     });
+
+    // Разблокировка аудиоконтекста после первого клика пользователя
+    const unlockAudio = () => {
+        const silentCtx = new (window.AudioContext || window.webkitAudioContext)();
+        silentCtx.resume().then(() => {
+            console.log("🔈 Аудио разблокировано");
+            document.removeEventListener('click', unlockAudio);
+        });
+    };
+    document.addEventListener('click', unlockAudio);
 
     new MutationObserver(updateThemeClass).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     window.addEventListener('scroll', applyLogic, {passive: true});
