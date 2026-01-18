@@ -612,6 +612,99 @@ body.is-dark-mode .OYZIV:disabled {
         .font-inter { font-family: 'Inter', sans-serif !important; }
         .font-mono { font-family: 'JetBrains Mono', monospace !important; }
 
+        /* --- DARK MODE ДЛЯ МЕНЮ --- */
+
+/* Плавающая кнопка в темной теме */
+body.is-dark-mode .points-settings-btn {
+    background: #775AFA !important; /* Оставляем фирменный цвет */
+    border-color: #1a1a24 !important; /* Темная рамка вместо белой */
+    box-shadow: 0 0 20px rgba(119, 90, 250, 0.4),
+                inset 0 0 10px rgba(255, 255, 255, 0.2) !important;
+}
+
+body.is-dark-mode .points-settings-btn:hover {
+    box-shadow: 0 0 30px rgba(119, 90, 250, 0.6) !important;
+}
+
+/* --- ФИКС ПОЛОСКИ PTS-RANGE В DARK MODE --- */
+
+body.is-dark-mode .pts-range {
+    -webkit-appearance: none;
+    appearance: none;
+    background: #252533 !important; /* Цвет незаполненной части */
+    height: 6px;
+    border-radius: 10px;
+    outline: none;
+}
+
+/* Фон самого меню */
+body.is-dark-mode #pts-menu {
+    background: rgba(13, 13, 20, 0.98) !important;
+    backdrop-filter: blur(15px);
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.7);
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Заголовки и текст */
+body.is-dark-mode #pts-menu h2 {
+    color: #775AFA !important;
+    border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+body.is-dark-mode .menu-section h3,
+body.is-dark-mode .menu-section label {
+    color: #8b8b93 !important;
+}
+
+/* Карточки выбора (style-option) */
+body.is-dark-mode .style-option {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #eeeeee !important;
+}
+
+body.is-dark-mode .style-option:hover {
+    border-color: #775AFA !important;
+    background: rgba(119, 90, 250, 0.05) !important;
+}
+
+body.is-dark-mode .style-option.active {
+    background: linear-gradient(145deg, #1e1e3f, #16162d) !important;
+    border-color: #775AFA !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 15px rgba(119, 90, 250, 0.2) !important;
+}
+
+/* Выпадающие списки (select) */
+body.is-dark-mode .pts-select {
+    background: #1a1a24 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+body.is-dark-mode .pts-select:focus {
+    border-color: #775AFA !important;
+}
+
+/* Разделитель */
+body.is-dark-mode .menu-divider {
+    border-top-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Кастомизация полосы прокрутки для темного меню */
+body.is-dark-mode #pts-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+body.is-dark-mode #pts-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+body.is-dark-mode #pts-menu::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
         /* Анимация плавного появления */
 @keyframes badge-appearance {
     from { opacity: 0; transform: scale(0.8) translateY(5px); }
