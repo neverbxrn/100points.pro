@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         100Points Pro: Ultimate Neon v6.8
 // @namespace    http://tampermonkey.net/
-// @version      6.8
+// @version      7.0
 // @description  Тот самый визуал + Пост-процессинг прогресс-бара + Умный фильтр
 // @author       bebebebebe
 // @match        https://lk.100points.ru/*
@@ -68,6 +68,125 @@
         } else if (lessonId) {
             localStorage.setItem(`timer_v3_${lessonId}`, '0'); // Таймер не нужен
         }
+    }
+
+// 1. Подключаем шрифт Unbounded
+    if (!document.getElementById('pts-font-unbounded')) {
+        const link = document.createElement('link');
+        link.id = 'pts-font-unbounded';
+        link.href = 'https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&display=swap';
+        link.rel = 'stylesheet';
+        document.head.appendChild(link);
+    }
+
+    let currentHomeworkData = null;
+
+    function updatePointsUI() {
+        if (!window.location.href.includes('/checked/')) return;
+
+        if (lastUrl !== window.location.href) {
+            lastUrl = window.location.href;
+            currentHomeworkData = null;
+        }
+
+        const pointsEl = document.querySelector('p.rqYJV.hIPyM');
+        if (!pointsEl) return;
+
+        // Прячем стандартный текст (то самое убогое 0), пока не готовы наши данные
+        if (!pointsEl.dataset.lastNum) {
+            pointsEl.style.opacity = '0';
+        }
+
+        const activeBtn = document.querySelector('button.HqV_y');
+        if (!activeBtn) return;
+
+        const activeNum = parseInt(activeBtn.innerText.trim());
+
+        if (!currentHomeworkData && !window.isPtsFetching) {
+            const match = window.location.href.match(/homework\/(\d+)\/checked\/(\d+)/);
+            if (match) fetchHomeworkData(match[1], match[2]);
+            return;
+        }
+
+        if (currentHomeworkData) {
+            const question = currentHomeworkData.find(q => q.order_id === activeNum);
+            if (pointsEl.dataset.lastNum === String(activeNum)) return;
+
+            if (question) {
+                renderPoints(pointsEl, question.points, activeNum);
+            }
+        }
+    }
+
+    function fetchHomeworkData(hwId, checkedId) {
+        window.isPtsFetching = true;
+        console.log(`%c[PTS] Запрос данных для №${hwId}...`, "color: #00ffff");
+
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: `https://api.100points.ru/api/student/homework/${hwId}/questionsBy/${checkedId}`,
+            headers: { "Authorization": authToken, "Accept": "application/json" },
+            onload: function(res) {
+                window.isPtsFetching = false;
+                try {
+                    const data = JSON.parse(res.responseText);
+                    if (data.questions) {
+                        currentHomeworkData = data.questions;
+                        console.log(`[PTS] База загружена (${data.questions.length} вопр.)`);
+                    }
+                } catch (e) { console.error("[PTS] Ошибка API", e); }
+            }
+        });
+    }
+
+    function renderPoints(el, maxPoints, activeNum) {
+        // Забираем текущий балл (убираем лишний текст, если он уже был добавлен нами)
+        const currentRaw = el.innerText.includes('/') ? el.innerText.split('/')[0] : el.innerText;
+        const currentPoints = parseFloat(currentRaw.replace(/[^\d.]/g, '')) || 0;
+
+        let bg = '#FF4747'; // Плохо (0)
+        let shadow = 'rgba(255, 71, 71, 0.4)';
+
+        if (currentPoints >= maxPoints && maxPoints > 0) {
+            bg = '#00D05A'; // Отлично
+            shadow = 'rgba(0, 208, 90, 0.4)';
+        } else if (currentPoints > 0) {
+            bg = '#FFA500'; // Средне
+            shadow = 'rgba(255, 165, 0, 0.4)';
+        }
+
+        Object.assign(el.style, {
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '14px 28px', // Увеличенные отступы для массивности
+            backgroundColor: bg,
+            color: '#FFFFFF',
+            borderRadius: '14px',
+            fontFamily: "'Unbounded', sans-serif",
+            fontSize: '14px',
+            fontWeight: '700',
+            lineHeight: '1', // Чтобы текст был ровно по центру
+            margin: '15px 0',
+            boxShadow: `0 6px 20px ${shadow}`,
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+            opacity: '1',
+            transform: 'scale(1)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            boxSizing: 'border-box',
+            whiteSpace: 'nowrap'
+        });
+
+        // Эффект "прыжка" при смене
+        el.style.transform = 'scale(0.95)';
+        setTimeout(() => { el.style.transform = 'scale(1)'; }, 100);
+
+        el.innerText = `Балл: ${currentPoints} / ${maxPoints}`;
+        el.dataset.lastNum = String(activeNum);
+
+        console.log(`%c[PTS] Отрисовано: ${currentPoints}/${maxPoints}`, `color: ${bg}; font-weight: bold;`);
     }
 
     let authToken = null;
@@ -1758,28 +1877,108 @@ body.is-dark-mode .custom-timer-value.timer-low {
     font-size: var(--badge-size, 12px) !important;
 }
 
-#pts-debug-window {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    width: 300px;
-    max-height: 400px;
-    background: rgba(0, 0, 0, 0.9);
-    color: #00ff00;
-    font-family: monospace;
-    font-size: 11px;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #444;
-    z-index: 999999;
-    overflow-y: auto;
-    pointer-events: none;
-    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+/* --- СВЕТЛАЯ ТЕМА (По умолчанию) --- */
+.bO43I {
+    background: #ffffff !important;
+    border: 1px solid #e1e4e8 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    border-radius: 12px !important;
+    padding: 20px !important;
+    margin: 10px 0 !important;
+    font-family: 'Unbounded', sans-serif !important;
 }
-.debug-line { border-bottom: 1px solid #222; padding: 2px 0; }
-.debug-ok { color: #00ff00; }
-.debug-err { color: #ff4747; }
-.debug-warn { color: #ffa500; }
+
+.kBzTg {
+    color: #1a1a1b !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px !important;
+}
+
+.mBqvc span {
+    color: #57606a !important;
+    font-size: 13px !important;
+}
+
+.SIFGw {
+    background: #f6f8fa !important;
+    border: 1px solid #d1d5da !important;
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    margin-top: 10px !important;
+}
+
+.ukm10 span {
+    color: #24292f !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+}
+
+/* --- ТЕМНАЯ ТЕМА (body.is-dark-mode) --- */
+body.is-dark-mode .bO43I {
+    background: #0d0d14 !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.is-dark-mode .kBzTg {
+    color: #ffffff !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.is-dark-mode .mBqvc span {
+    color: #8b8b93 !important;
+}
+
+body.is-dark-mode .SIFGw {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+body.is-dark-mode .ukm10 span {
+    color: #ffffff !important;
+    opacity: 0.9;
+}
+
+/* --- СВЕТЛАЯ ТЕМА (Выполнено) --- */
+.bO43I.wIzLx {
+    background: #f0fff4 !important; /* Очень легкий зеленый оттенок */
+    border: 1px solid #00D05A !important;
+    box-shadow: 0 4px 12px rgba(0, 208, 90, 0.1) !important;
+}
+
+.bO43I.wIzLx .kBzTg {
+    color: #008a3c !important;
+}
+
+/* --- ТЕМНАЯ ТЕМА (Выполнено) --- */
+body.is-dark-mode .bO43I.wIzLx {
+    /* Темно-зеленый глубокий градиент */
+    background: linear-gradient(145deg, #0a1f12, #0d0d14) !important;
+    /* Яркая неоновая граница */
+    border: 1px solid rgba(0, 208, 90, 0.4) !important;
+    /* Зеленое свечение и внутренняя подсветка */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(0, 208, 90, 0.1) !important;
+    backdrop-filter: blur(10px);
+}
+
+body.is-dark-mode .bO43I.wIzLx .kBzTg {
+    color: #00ff6e !important;
+    text-shadow: 0 0 10px rgba(0, 255, 110, 0.3) !important;
+}
+
+body.is-dark-mode .bO43I.wIzLx .mBqvc span {
+    color: #a3c7af !important; /* Светло-зеленоватый текст для описания */
+}
+
+/* Принудительный цвет для плашек внутри выполненной работы */
+body.is-dark-mode .bO43I.wIzLx .SIFGw {
+    background: rgba(0, 208, 90, 0.1) !important;
+    border-color: rgba(0, 208, 90, 0.2) !important;
+}
     `);
 
     function updateThemeClass() {
@@ -3058,6 +3257,7 @@ body.is-dark-mode .custom-timer-value.timer-low {
             console.error("Ошибка в цикле скрипта:", err);
         }
 
+        updatePointsUI();
         applyCleanMode();
 
         const parentWrapper = document.querySelector('.wCNrd');
