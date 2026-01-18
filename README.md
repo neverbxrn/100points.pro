@@ -4,7 +4,7 @@ Hueta
 Примечание: скрипт можно установить на телефон/планшет и тому подобное! Для этого понадобится Firefox (Шаги такие же, найдите в настройках просто кнопку "расширения")
 
 чтоб установить вам надо установить tampermonkey в магазине расширений, потом включить dev мод (в ютубе гайдов куча и на самом tampermonkey есть)
-потом зайдите в сам [tampermonkey]([[url](https://chromewebstore.google.com/detail/dhdgffkkebhmkfjojejmpbldmpobfkfo?utm_source=item-share-cb)]) и создайте пустой скрипт (на "+" нажать, и туда вставьте мой скрипт(100Points Pro.js))
+потом зайдите в сам [tampermonkey](https://chromewebstore.google.com/detail/dhdgffkkebhmkfjojejmpbldmpobfkfo?utm_source=item-share-cb) и создайте пустой скрипт (на "+" нажать, и туда вставьте мой скрипт(100Points Pro.js))
 
 Да, этот скрипт берёт ваш токен 100Б, чтоб в обход бага узнать сделано дз или нет
 
