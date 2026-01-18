@@ -31,6 +31,7 @@
         lessonId: null
     };
 
+
     // 1. Перехват FETCH
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
@@ -133,19 +134,19 @@
     ];
 
     const barStyles = [
-    { id: 'default', name: 'Неоновый' },
-    { id: 'dynamic', name: 'Умный градиент' },
-    { id: 'liquid', name: 'Жидкий' },
-    { id: 'striped', name: 'Полосатый' },
-    { id: 'glow', name: 'Мягкое свечение' },
-    { id: 'glass', name: 'Стеклянный' },
-    { id: 'dots', name: 'Точечный' },
-    { id: 'pulse', name: 'Пульсирующий' },
-    { id: 'flat-clean', name: 'Минимализм' },
-    { id: 'slim', name: 'Тонкая линия' },
-    { id: 'segmented', name: 'Разделители' },
-    { id: 'matte', name: 'Матовый плоский' }
-];
+        { id: 'default', name: 'Неоновый' },
+        { id: 'dynamic', name: 'Умный градиент' },
+        { id: 'liquid', name: 'Жидкий' },
+        { id: 'striped', name: 'Полосатый' },
+        { id: 'glow', name: 'Мягкое свечение' },
+        { id: 'glass', name: 'Стеклянный' },
+        { id: 'dots', name: 'Точечный' },
+        { id: 'pulse', name: 'Пульсирующий' },
+        { id: 'flat-clean', name: 'Минимализм' },
+        { id: 'slim', name: 'Тонкая линия' },
+        { id: 'segmented', name: 'Разделители' },
+        { id: 'matte', name: 'Матовый плоский' }
+    ];
 
     const fontStyles = [
         { id: 'default', name: 'Системный' },
@@ -411,6 +412,20 @@ body:has(.hover-focus:hover) .UAktb:not(:hover) {
             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 15px rgba(139, 114, 255, 0.2) !important;
             transform: translateY(-2px);
         }
+
+        /* Делаем инпут ответа прозрачным в темной теме */
+body.is-dark-mode .OYZIV {
+    background-color: transparent !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+/* Отдельно для состояния disabled, так как браузеры часто накладывают свои стили */
+body.is-dark-mode .OYZIV:disabled {
+    background-color: rgba(255, 255, 255, 0.03) !important; /* Еле заметный тон, чтобы поле не "провалилось" совсем */
+    color: rgba(255, 255, 255, 0.5) !important;
+    cursor: not-allowed;
+}
 
         /* ПЛАВАЮЩАЯ КНОПКА (FIXED) */
         .points-settings-btn {
@@ -1675,6 +1690,35 @@ mjx-assistive-mml {
     font-family: 'Courier New', monospace !important; /* Моноширинный шрифт, чтобы цифры не дергались */
 }
 
+/* Таймер в тёмной теме */
+body.is-dark-mode .custom-timer-container {
+    background: rgba(20, 20, 35, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.is-dark-mode .custom-timer-label {
+    color: #9da5b1 !important; /* Приглушенный текст для метки "Осталось" */
+}
+
+body.is-dark-mode .custom-timer-value {
+    color: #ffffff !important;
+    font-family: 'Monaco', 'Consolas', monospace !important; /* Моноширинный шрифт для цифр */
+}
+
+/* Эффект, когда времени осталось мало (timer-low) */
+body.is-dark-mode .custom-timer-value.timer-low {
+    color: #ff5f5f !important;
+    text-shadow: 0 0 10px rgba(255, 95, 95, 0.4) !important;
+    animation: pts-timer-pulse 1.5s infinite alternate !important;
+}
+
+/* Анимация пульсации для критического времени */
+@keyframes pts-timer-pulse {
+    from { opacity: 1; }
+    to { opacity: 0.7; }
+}
+
 /* Эффект для малого количества времени */
 .timer-low {
     color: #d63031 !important;
@@ -1713,6 +1757,29 @@ mjx-assistive-mml {
 .badge-class-name-here { /* замени на актуальный класс плашек */
     font-size: var(--badge-size, 12px) !important;
 }
+
+#pts-debug-window {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    width: 300px;
+    max-height: 400px;
+    background: rgba(0, 0, 0, 0.9);
+    color: #00ff00;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    z-index: 999999;
+    overflow-y: auto;
+    pointer-events: none;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+}
+.debug-line { border-bottom: 1px solid #222; padding: 2px 0; }
+.debug-ok { color: #00ff00; }
+.debug-err { color: #ff4747; }
+.debug-warn { color: #ffa500; }
     `);
 
     function updateThemeClass() {
@@ -1807,46 +1874,46 @@ mjx-assistive-mml {
     }
 
     function getProgressBarStyle(style) {
-    let css = '';
-    // Основная анимация (нужна для жидкого и пульсации)
-    css += `
+        let css = '';
+        // Основная анимация (нужна для жидкого и пульсации)
+        css += `
         @keyframes pts-bar-move { from { background-position: 0 0; } to { background-position: 30px 0; } }
         @keyframes pts-bar-pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     `;
 
-    switch (style) {
-        case 'default':
-            return css + `.D0VIa { box-shadow: 0 0 10px currentColor !important; position: relative !important; }
+        switch (style) {
+            case 'default':
+                return css + `.D0VIa { box-shadow: 0 0 10px currentColor !important; position: relative !important; }
                     .D0VIa::after { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 40%; background: rgba(255,255,255,0.2); }`;
 
-        case 'liquid':
-            return css + `.D0VIa { background-image: linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%) !important; background-size: 30px 30px !important; animation: pts-bar-move 1s linear infinite !important; }`;
+            case 'liquid':
+                return css + `.D0VIa { background-image: linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%) !important; background-size: 30px 30px !important; animation: pts-bar-move 1s linear infinite !important; }`;
 
-        case 'striped':
-            return css + `.D0VIa { background-image: linear-gradient(-45deg, rgba(0,0,0,0.1) 25%, transparent 25%, transparent 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1) 75%, transparent 75%) !important; background-size: 12px 12px !important; }`;
+            case 'striped':
+                return css + `.D0VIa { background-image: linear-gradient(-45deg, rgba(0,0,0,0.1) 25%, transparent 25%, transparent 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1) 75%, transparent 75%) !important; background-size: 12px 12px !important; }`;
 
-        case 'glow': // Новое: Мягкое внешнее свечение без бликов
-            return css + `.D0VIa { filter: drop-shadow(0 0 5px currentColor) !important; }`;
+            case 'glow': // Новое: Мягкое внешнее свечение без бликов
+                return css + `.D0VIa { filter: drop-shadow(0 0 5px currentColor) !important; }`;
 
-        case 'glass': // Новое: Эффект матового стекла
-            return css + `.D0VIa { border: 1px solid rgba(255,255,255,0.3) !important; background-clip: padding-box !important; }
+            case 'glass': // Новое: Эффект матового стекла
+                return css + `.D0VIa { border: 1px solid rgba(255,255,255,0.3) !important; background-clip: padding-box !important; }
                     .D0VIa::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); }`;
 
-        case 'dots': // Новое: Текстура в крапинку
-            return css + `.D0VIa { background-image: radial-gradient(rgba(255,255,255,0.3) 15%, transparent 16%) !important; background-size: 6px 6px !important; }`;
+            case 'dots': // Новое: Текстура в крапинку
+                return css + `.D0VIa { background-image: radial-gradient(rgba(255,255,255,0.3) 15%, transparent 16%) !important; background-size: 6px 6px !important; }`;
 
-        case 'pulse': // Новое: Плавное мерцание всего бара
-            return css + `.D0VIa { animation: pts-bar-pulse 2s ease-in-out infinite !important; box-shadow: 0 0 8px currentColor !important; }`;
+            case 'pulse': // Новое: Плавное мерцание всего бара
+                return css + `.D0VIa { animation: pts-bar-pulse 2s ease-in-out infinite !important; box-shadow: 0 0 8px currentColor !important; }`;
 
-        case 'flat-clean': // Новое: Чистый цвет без эффектов
-            return css + `.D0VIa { box-shadow: none !important; border-radius: 2px !important; }`;
+            case 'flat-clean': // Новое: Чистый цвет без эффектов
+                return css + `.D0VIa { box-shadow: none !important; border-radius: 2px !important; }`;
 
-        case 'dynamic':
-        default:
-            return css + `.D0VIa { background-image: linear-gradient(to right, rgba(0,0,0,0.05), rgba(255,255,255,0.1)) !important; }`;
+            case 'dynamic':
+            default:
+                return css + `.D0VIa { background-image: linear-gradient(to right, rgba(0,0,0,0.05), rgba(255,255,255,0.1)) !important; }`;
 
-        case 'slim': // Новое: Уменьшает высоту бара до тонкой нити по центру
-            return css + `
+            case 'slim': // Новое: Уменьшает высоту бара до тонкой нити по центру
+                return css + `
                 .D0VIa {
                     height: 4px !important;
                     margin-top: 3px !important;
@@ -1856,8 +1923,8 @@ mjx-assistive-mml {
                 .pW0_6 { background: transparent !important; } /* Фон подложки делаем невидимым */
             `;
 
-        case 'segmented': // Новое: Визуально режет бар на мелкие блоки (эффект делений)
-            return css + `
+            case 'segmented': // Новое: Визуально режет бар на мелкие блоки (эффект делений)
+                return css + `
                 .D0VIa {
                     background-image: linear-gradient(90deg,
                         transparent 0%,
@@ -1870,8 +1937,8 @@ mjx-assistive-mml {
                 }
             `;
 
-       case 'matte': // Новое: Максимально плоский стиль без эффектов
-            return css + `
+            case 'matte': // Новое: Максимально плоский стиль без эффектов
+                return css + `
                 .D0VIa {
                     box-shadow: none !important;
                     filter: none !important;
@@ -1883,8 +1950,8 @@ mjx-assistive-mml {
                     display: none !important;
                 }
             `;
+        }
     }
-}
 
     function updateDynamicStyles() {
         const old = document.getElementById('pts-dynamic-css');
@@ -2181,6 +2248,11 @@ mjx-assistive-mml {
                 <label>Кнопка закрытия чата (✕)</label>
                 <input type="checkbox" class="pts-checkbox" data-setting="showChatCloseBtn" ${settings.showChatCloseBtn ? 'checked' : ''}>
             </div>
+            <div class="menu-checkbox-section">
+                <label>Убрать дрисню</label>
+                <input type="checkbox" class="pts-checkbox" data-setting="cleanMode" ${settings.cleanMode ? 'checked' : ''}>
+            </div>
+
         </div>
 
         <button id="pts-close">Готово</button>
@@ -2916,90 +2988,111 @@ mjx-assistive-mml {
         };
     }
 
-function centerActiveTask() {
-    const activeBtn = document.querySelector('.Hlt15.HqV_y');
-    const container = document.querySelector('.QblpJ');
-    const downloadBtn = document.querySelector('.download-all-tasks-btn');
-    const mainWrapper = document.querySelector('._9kveE');
+//async function updatePointsDisplay() {
 
-    if (!container || !activeBtn) return;
 
-    // 1. Центрируем только цепочку номеров
-    const btnRect = activeBtn.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    const scrollTarget = container.scrollLeft + (btnRect.left - containerRect.left) - (containerRect.width / 2) + (btnRect.width / 2);
+    function applyCleanMode() {
+        if (!settings.cleanMode) return;
 
-    container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+        // Прячем всё лишнее через CSS, чтобы не нагружать процессор
+        const selectors = [
+            '.banner-container.ambassador-banner',
+            '.dJ46J.ub6AZ.UbmX3.has-capture-btn',
+            '.zhG_D'
+        ];
 
-    // 2. Добавляем кнопку ОДИН РАЗ прямо в подложку, если её там нет
-    if (downloadBtn && mainWrapper && downloadBtn.parentNode !== mainWrapper) {
-        mainWrapper.appendChild(downloadBtn);
-    }
-}
-
-// Запускаем при загрузке и при кликах на кнопки
-setTimeout(centerActiveTask, 500);
-document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('Hlt15') || e.target.closest('.nEjyO')) {
-        setTimeout(centerActiveTask, 50);
-    }
-});
-
-// Запуск всего
-const init = () => {
-    if (!document.body) return setTimeout(init, 100);
-    createMenu();
-    updateDynamicStyles();
-    updateThemeClass();
-};
-
-init();
-
-setInterval(() => {
-    applyLogic();
-
-    try {
-        if (settings.videoResizer) {
-            initVideoResizer();
-        }
-        updateChatControl();
-    } catch (err) {
-        console.error("Ошибка в цикле скрипта:", err);
+        selectors.forEach(sel => {
+            const el = document.querySelector(sel);
+            if (el) el.style.setProperty('display', 'none', 'important');
+        });
     }
 
-    const parentWrapper = document.querySelector('.wCNrd');
-    const chatContainer = document.querySelector('.vqMgR');
+    function centerActiveTask() {
+        const activeBtn = document.querySelector('.Hlt15.HqV_y');
+        const container = document.querySelector('.QblpJ');
+        const downloadBtn = document.querySelector('.download-all-tasks-btn');
+        const mainWrapper = document.querySelector('._9kveE');
 
-    if (parentWrapper && chatContainer) {
-        if (chatContainer.style.display !== 'none') {
-            parentWrapper.style.display = 'flex';
-            parentWrapper.style.flexDirection = 'row';
+        if (!container || !activeBtn) return;
+
+        // 1. Центрируем только цепочку номеров
+        const btnRect = activeBtn.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const scrollTarget = container.scrollLeft + (btnRect.left - containerRect.left) - (containerRect.width / 2) + (btnRect.width / 2);
+
+        container.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+
+        // 2. Добавляем кнопку ОДИН РАЗ прямо в подложку, если её там нет
+        if (downloadBtn && mainWrapper && downloadBtn.parentNode !== mainWrapper) {
+            mainWrapper.appendChild(downloadBtn);
         }
     }
 
-    const oldTimer = document.querySelector('.swNXM');
-    const lessonId = window.location.pathname.match(/\d+/)?.[0];
+    // Запускаем при загрузке и при кликах на кнопки
+    setTimeout(centerActiveTask, 500);
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('Hlt15') || e.target.closest('.nEjyO')) {
+            setTimeout(centerActiveTask, 50);
+        }
+    });
 
-    if (lessonId) {
-        let savedEndTime = localStorage.getItem(`timer_finish_${lessonId}`);
+    // Запуск всего
+    const init = () => {
+        if (!document.body) return setTimeout(init, 100);
+        createMenu();
+        updateDynamicStyles();
+        updateThemeClass();
+    };
 
-        // ПАРСИНГ (если в памяти пусто)
-        if (!savedEndTime && oldTimer) {
-            const timeText = oldTimer.querySelector('.ovZ4y')?.innerText;
-            const match = timeText?.match(/(\d{2}):(\d{2}):(\d{2})/);
-            if (match) {
-                const seconds = parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + parseInt(match[3]);
-                savedEndTime = Date.now() + (seconds * 1000);
-                localStorage.setItem(`timer_finish_${lessonId}`, savedEndTime);
+    init();
+
+    setInterval(() => {
+        applyLogic();
+
+        try {
+            if (settings.videoResizer) {
+                initVideoResizer();
+            }
+            updateChatControl();
+        } catch (err) {
+            console.error("Ошибка в цикле скрипта:", err);
+        }
+
+        applyCleanMode();
+
+        const parentWrapper = document.querySelector('.wCNrd');
+        const chatContainer = document.querySelector('.vqMgR');
+
+        if (parentWrapper && chatContainer) {
+            if (chatContainer.style.display !== 'none') {
+                parentWrapper.style.display = 'flex';
+                parentWrapper.style.flexDirection = 'row';
             }
         }
 
-        if (oldTimer && savedEndTime) {
-            let myTimer = document.getElementById('custom-timer-display');
-            if (!myTimer) {
-                const container = document.createElement('div');
-                container.className = 'custom-timer-container';
-                container.innerHTML = `
+        const oldTimer = document.querySelector('.swNXM');
+        const lessonId = window.location.pathname.match(/\d+/)?.[0];
+
+        if (lessonId) {
+            let savedEndTime = localStorage.getItem(`timer_finish_${lessonId}`);
+
+            // ПАРСИНГ (если в памяти пусто)
+            if (!savedEndTime && oldTimer) {
+                const timeText = oldTimer.querySelector('.ovZ4y')?.innerText;
+                const match = timeText?.match(/(\d{2}):(\d{2}):(\d{2})/);
+                if (match) {
+                    const seconds = parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + parseInt(match[3]);
+                    savedEndTime = Date.now() + (seconds * 1000);
+                    localStorage.setItem(`timer_finish_${lessonId}`, savedEndTime);
+                }
+            }
+
+            if (oldTimer && savedEndTime) {
+                let myTimer = document.getElementById('custom-timer-display');
+                if (!myTimer) {
+                    const container = document.createElement('div');
+                    container.className = 'custom-timer-container';
+                    container.innerHTML = `
                     <div class="custom-timer-content">
                         <span class="custom-timer-label">Осталось:</span>
                         <span class="custom-timer-value" id="custom-timer-display">--:--:--</span>
@@ -3050,24 +3143,24 @@ setInterval(() => {
         initGlobalDownload();
     }, 800);
 
-// --- СЛУШАТЕЛЬ КЛИКОВ (для центрирования) ---
-// Этот блок ставится отдельно, один раз
-document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('Hlt15') || e.target.closest('.nEjyO')) {
-        setTimeout(centerActiveTask, 50);
-    }
-});
-
-// Разблокировка аудиоконтекста после первого клика пользователя
-const unlockAudio = () => {
-    const silentCtx = new (window.AudioContext || window.webkitAudioContext)();
-    silentCtx.resume().then(() => {
-        console.log("🔈 Аудио разблокировано");
-        document.removeEventListener('click', unlockAudio);
+    // --- СЛУШАТЕЛЬ КЛИКОВ (для центрирования) ---
+    // Этот блок ставится отдельно, один раз
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('Hlt15') || e.target.closest('.nEjyO')) {
+            setTimeout(centerActiveTask, 50);
+        }
     });
-};
-document.addEventListener('click', unlockAudio);
 
-new MutationObserver(updateThemeClass).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-window.addEventListener('scroll', applyLogic, {passive: true});
+    // Разблокировка аудиоконтекста после первого клика пользователя
+    const unlockAudio = () => {
+        const silentCtx = new (window.AudioContext || window.webkitAudioContext)();
+        silentCtx.resume().then(() => {
+            console.log("🔈 Аудио разблокировано");
+            document.removeEventListener('click', unlockAudio);
+        });
+    };
+    document.addEventListener('click', unlockAudio);
+
+    new MutationObserver(updateThemeClass).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.addEventListener('scroll', applyLogic, {passive: true});
 })();
