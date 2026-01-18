@@ -1967,6 +1967,13 @@ mjx-assistive-mml {
         </div>
 
         <div class="menu-section">
+            <label>Стиль плашки (процентов)</label>
+            <select class="pts-select" data-setting="badgeStyle">
+            ${badgeStyles.map(s => `<option value="${s.id}" ${settings.badgeStyle === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+            </select>
+        </div>
+
+        <div class="menu-section">
             <label>Внутренний отступ: <span id="pad-val">${settings.cardInnerPadding || 15}</span>px</label>
             <input type="range" class="pts-range" data-setting="cardInnerPadding" min="0" max="40" value="${settings.cardInnerPadding || 15}">
         </div>
