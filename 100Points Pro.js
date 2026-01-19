@@ -3290,7 +3290,9 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
         const selectors = [
             '.banner-container.ambassador-banner',
             '.dJ46J.ub6AZ.UbmX3.has-capture-btn',
-            '.zhG_D'
+            '.zhG_D',
+            '.D3HJO',
+            '._Nrsa'
         ];
 
         selectors.forEach(sel => {
