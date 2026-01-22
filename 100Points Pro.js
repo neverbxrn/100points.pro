@@ -2448,6 +2448,11 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
         </div>
 
         <div class="menu-section">
+                <label>Масштаб карточек: <span id="card-val">${settings.cardPadding}</span>%</label>
+                <input type="range" class="pts-range" data-setting="cardPadding" min="70" max="130" value="${settings.cardPadding}">
+            </div>
+
+        <div class="menu-section">
             <label>Стиль плашки (процентов)</label>
             <select class="pts-select" data-setting="badgeStyle">
             ${badgeStyles.map(s => `<option value="${s.id}" ${settings.badgeStyle === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
@@ -2563,8 +2568,10 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
 
                 if (el.type === 'range') {
                     val = parseInt(val);
+
                     // Динамическое обновление текста рядом с ползунком
                     const displayMap = {
+                        'cardPadding': 'card-val',
                         'fontSize': 'font-val',
                         'cardInnerPadding': 'pad-val',
                         'cardBorderRadius': 'rad-val',
