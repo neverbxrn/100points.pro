@@ -1,4 +1,4 @@
-# 100points.pro
+<img width="1920" height="950" alt="image" src="https://github.com/user-attachments/assets/4f757d18-50bd-49ed-8403-3b29830bef92" /># 100points.pro
 Hueta
 
 Примечание: скрипт можно установить на телефон/планшет и тому подобное! Для этого понадобится Firefox (Шаги такие же, найдите в настройках просто кнопку "расширения")
@@ -25,3 +25,11 @@ browser://extensions или chrome://extensions
 
 БАГИ ЛАГИ ПУКИ КАКИ - подождать/перезапустить браузер/перезапустить tamper/перезагрузить пк - если не работает то анлаки, но можешь создать ишуе на страничке issues, я гляну и может починю.
 скорее всего будет плохо работать на слабых пк, поэтому сорян
+
+Как выглядит:
+<img width="1920" height="950" alt="image" src="https://github.com/user-attachments/assets/59036ef1-490a-48b8-97e4-71d4b6888e06" />
+<img width="1920" height="950" alt="image" src="https://github.com/user-attachments/assets/1cd2bc52-b33d-4a87-a10c-0d008df91904" />
+<img width="1920" height="950" alt="image" src="https://github.com/user-attachments/assets/b94c4a7f-f52c-4345-90dd-b1551bdd6cbf" />
+<img width="1920" height="950" alt="image" src="https://github.com/user-attachments/assets/dd90dfe4-5545-4b11-92ab-c9b986bf97ea" />
+<img width="1920" height="950" alt="image" src="https://github.com/user-attachments/assets/792963d2-bb85-4260-b260-7581f1720073" />
+<img width="1920" height="950" alt="image" src="https://github.com/user-attachments/assets/74458b99-fdd3-4b41-92dd-2920b67ba957" />
