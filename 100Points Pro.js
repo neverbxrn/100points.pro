@@ -31,7 +31,6 @@
         lessonId: null
     };
 
-
     // 1. Перехват FETCH
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
@@ -70,7 +69,146 @@
         }
     }
 
-// 1. Подключаем шрифт Unbounded
+// --- КОНФИГУРАЦИЯ ---
+const DRAFTS_KEY = 'hwork_ultimate_drafts';
+const _nFetch = window.fetch;
+const _nXSend = XMLHttpRequest.prototype.send;
+const _nXOpen = XMLHttpRequest.prototype.open;
+
+let hwork_drafts = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]');
+let isManualClick = false;
+
+// 1. Фиксация клика
+document.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.xw85C')) {
+        isManualClick = true;
+        console.log("%c[Drafts Debug] Клик зафиксирован!", "color: #00ffaa; font-weight: bold;");
+        setTimeout(() => { isManualClick = false; }, 5000);
+    }
+}, true);
+
+// 2. Универсальный разборщик FormData и JSON
+function getRequestData(body) {
+    if (!body) return null;
+    const data = {};
+
+    if (body instanceof FormData) {
+        // Вытаскиваем все поля из FormData (answer, last_homework_draft_id и др.)
+        for (let [key, value] of body.entries()) {
+            data[key] = value;
+        }
+        return data;
+    }
+
+    try {
+        if (typeof body === 'string') return JSON.parse(body);
+    } catch (e) {
+        console.error("[Drafts Debug] Не удалось распарсить строку:", e);
+    }
+    return null;
+}
+
+// 3. Подсчет ответов (теперь лезем в поле 'answer')
+function countAnswersInPayload(data) {
+    try {
+        // В FormData поле 'answer' — это строка JSON, её надо распарсить для счета
+        const answerArray = typeof data.answer === 'string' ? JSON.parse(data.answer) : data.answer;
+        if (!Array.isArray(answerArray)) return 0;
+
+        return answerArray.filter(item => {
+            if (!item.answer || !Array.isArray(item.answer)) return false;
+            return item.answer.some(sub => {
+                if (Array.isArray(sub)) return sub.some(v => v && v.toString().trim() !== "");
+                return sub && sub.toString().trim() !== "";
+            });
+        }).length;
+    } catch (e) {
+        return 0;
+    }
+}
+
+// 4. Сохранение
+function saveToDrafts(url, body) {
+    const data = getRequestData(body);
+    if (!data || (!data.answer && !Array.isArray(data))) {
+        console.warn("[Drafts Debug] Попытка сохранить пустой или неверный запрос.");
+        return;
+    }
+
+    const answersCount = countAnswersInPayload(data);
+    const hwId = url.match(/homework\/(\d+)\/save/)?.[1] || '???';
+
+    const newDraft = {
+        id: Date.now(),
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        hwId: hwId,
+        url: url,
+        payload: data, // Здесь теперь лежат все поля: и answer, и draft_id
+        count: answersCount
+    };
+
+    hwork_drafts.unshift(newDraft);
+    hwork_drafts = hwork_drafts.slice(0, 10);
+    localStorage.setItem(DRAFTS_KEY, JSON.stringify(hwork_drafts));
+
+    console.log(`%c[Drafts Debug] СОХРАНЕНО! (ID: ${hwId}, Ответов: ${answersCount})`, "background: #008800; color: #fff; padding: 2px 5px;");
+}
+
+// 5. Перехватчики (XHR и Fetch)
+window.fetch = async (...args) => {
+    const url = args[0];
+    const options = args[1];
+    if (isManualClick && typeof url === 'string' && url.includes('/save') && options?.method === 'POST') {
+        isManualClick = false;
+        saveToDrafts(url, options.body);
+    }
+    return _nFetch(...args);
+};
+
+XMLHttpRequest.prototype.open = function(m, u) { this._u = u; this._m = m; return _nXOpen.apply(this, arguments); };
+XMLHttpRequest.prototype.send = function(body) {
+    if (isManualClick && this._u && this._u.includes('/save') && this._m === 'POST') {
+        isManualClick = false;
+        saveToDrafts(this._u, body);
+    }
+    return _nXSend.apply(this, arguments);
+};
+
+// 6. Восстановление (Имитируем FormData на 100%)
+async function restoreHworkDraft(draft) {
+    if (!confirm(`Восстановить черновик от ${draft.time}?`)) return;
+
+    try {
+        // Создаем настоящий FormData, чтобы сервер принял запрос
+        const fd = new FormData();
+        for (let key in draft.payload) {
+            fd.append(key, draft.payload[key]);
+        }
+
+        const res = await _nFetch(draft.url, {
+            method: 'POST',
+            headers: {
+                // ПРИМЕЧАНИЕ: Content-Type для FormData браузер ставит САМ
+                'Authorization': typeof authToken !== 'undefined' ? authToken : ''
+            },
+            body: fd
+        });
+
+        if (res.ok) {
+            alert('Черновик успешно применен! Перезагружаю...');
+            location.reload();
+        } else {
+            const errText = await res.text();
+            console.error("[Drafts Debug] Ответ сервера:", errText);
+            alert('Ошибка сервера при восстановлении. Проверьте консоль.');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Ошибка сети.');
+    }
+}
+
+    // 1. Подключаем шрифт Unbounded
     if (!document.getElementById('pts-font-unbounded')) {
         const link = document.createElement('link');
         link.id = 'pts-font-unbounded';
@@ -374,11 +512,23 @@ body:has(.hover-focus:hover) .UAktb:not(:hover) {
 }
 
 .NUfp2 {
-    border-radius: 10px !important;
-    background: linear-gradient(90deg, #775AFA, #5C8AFF) !important;
-    box-shadow: 0 0 10px rgba(119, 90, 250, 0.6) !important;
     position: relative;
+    border-radius: 12px !important; /* Чуть мягче углы */
+    /* Глубокий градиент с переходом через насыщенный синий */
+    background: linear-gradient(135deg, #775AFA 0%, #666CFF 50%, #5C8AFF 100%) !important;
+    /* Эффект свечения: внешняя тень + внутренний блик */
+    box-shadow: 0 4px 15px rgba(119, 90, 250, 0.4),
+                inset 0 1px 1px rgba(255, 255, 255, 0.3) !important;
+    overflow: hidden;
 }
+
+/* --- ТЕМНАЯ ТЕМА (Исправление фона полоски) --- */
+body.is-dark-mode .NUfp2 {
+    /* Основной градиент заполненной части */
+    background: linear-gradient(135deg, #5939e6 0%, #4a54f1 100%) !important;
+    box-shadow: 0 0 20px rgba(119, 90, 250, 0.2) !important;
+}
+
 
 /* Текст "Пройдено 81%" */
 .ZP0bu {
@@ -394,22 +544,29 @@ body:has(.hover-focus:hover) .UAktb:not(:hover) {
     font-size: 0.9em;
 }
 
-/* Нижняя кнопка перехода к уроку */
+/* Кнопка перехода */
 .yOmZn {
     background: rgba(119, 90, 250, 0.05) !important;
     border-top: 1px solid rgba(119, 90, 250, 0.1) !important;
-    transition: background 0.3s !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .yOmZn:hover {
-    background: rgba(119, 90, 250, 0.1) !important;
+    background: rgba(119, 90, 250, 0.12) !important;
     text-decoration: none !important;
 }
 
+/* Текст внутри кнопки */
 .T6RCe {
     font-weight: 600 !important;
-    color: #555 !important;
+    color: #6a4fef !important; /* Сделаем текст чуть насыщеннее вместо серого */
+    transition: color 0.3s !important;
 }
+
+.yOmZn:hover .T6RCe {
+    color: #775AFA !important; /* Текст становится ярче при наведении */
+}
+
 
         .mUkKn { position: relative !important; border: 2px solid #eef0f7 !important; border-radius: 20px !important; margin-bottom: 18px !important; padding: 22px !important; background: #ffffff !important; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; overflow: hidden !important; }
         .mUkKn:hover { border-color: #775AFA !important; transform: translateY(-5px) scale(1.01) !important; box-shadow: 0 12px 30px rgba(119, 90, 250, 0.2) !important; }
@@ -1925,6 +2082,34 @@ body.is-dark-mode .custom-timer-value.timer-low {
     animation: pts-timer-pulse 1.5s infinite alternate !important;
 }
 
+/* Новые правки для отображения времени начала */
+.custom-timer-content {
+    flex-direction: column !important; /* Стек в колонку */
+    align-items: center !important;
+}
+
+.custom-timer-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.custom-timer-started {
+    font-size: 11px !important;
+    color: #636e72 !important;
+    font-weight: 500 !important;
+    margin-top: 4px !important;
+    opacity: 0.8;
+}
+
+body.is-dark-mode .custom-timer-started {
+    color: #9da5b1 !important;
+}
+
+#custom-timer-start-time {
+    font-weight: 700 !important;
+}
+
 /* Анимация пульсации для критического времени */
 @keyframes pts-timer-pulse {
     from { opacity: 1; }
@@ -2072,6 +2257,143 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
     background: rgba(0, 208, 90, 0.1) !important;
     border-color: rgba(0, 208, 90, 0.2) !important;
 }
+
+/* --- СВЕТЛАЯ ТЕМА (Просрочено) --- */
+.bO43I.iFg7b {
+    background: #fff5f5 !important; /* Нежно-красный фон */
+    border: 1px solid #ff4747 !important;
+    box-shadow: 0 4px 12px rgba(255, 71, 71, 0.1) !important;
+}
+
+.bO43I.iFg7b .kBzTg {
+    color: #d32f2f !important; /* Насыщенный красный заголовок */
+}
+
+/* --- ТЕМНАЯ ТЕМА (Просрочено) --- */
+body.is-dark-mode .bO43I.iFg7b {
+    /* Темно-красный глубокий градиент */
+    background: linear-gradient(145deg, #2a0a0a, #0d0d14) !important;
+    /* Яркая неоновая красная граница */
+    border: 1px solid rgba(255, 71, 71, 0.4) !important;
+    /* Красное свечение и внутренняя подсветка */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(255, 71, 71, 0.1) !important;
+    backdrop-filter: blur(10px);
+}
+
+body.is-dark-mode .bO43I.iFg7b .kBzTg {
+    color: #ff5f5f !important;
+    text-shadow: 0 0 10px rgba(255, 95, 95, 0.3) !important;
+}
+
+body.is-dark-mode .bO43I.iFg7b .mBqvc span {
+    color: #f1b0b0 !important; /* Светло-розовый текст для описания дедлайна */
+}
+
+/* Цвет плашки внутри просроченной работы */
+body.is-dark-mode .bO43I.iFg7b .SIFGw {
+    background: rgba(255, 71, 71, 0.1) !important;
+    border-color: rgba(255, 71, 71, 0.2) !important;
+}
+
+body.is-dark-mode .bO43I.iFg7b .ukm10 span {
+    color: #ff8e8e !important;
+}
+
+/* --- СТАНДАРТНАЯ ТЕМА (Нейтральная) --- */
+.custom-hw-count {
+    position: absolute !important;
+    top: 55px !important;
+    right: 20px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(4px);
+    color: #fff !important;
+    padding: 2px 8px !important;
+    border-radius: 6px !important;
+    font-size: 10px !important;
+    font-weight: bold !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    z-index: 15 !important;
+    pointer-events: none;
+    white-space: nowrap !important;
+    animation: slideDownHw 0.3s ease-out forwards;
+}
+
+/* --- ТЕМНАЯ ТЕМА (Dark Mode) --- */
+body.is-dark-mode .custom-hw-count {
+    /* Глубокий темный фон с фиолетовым отливом */
+    background: linear-gradient(145deg, rgba(20, 20, 30, 0.9), rgba(10, 10, 15, 0.95)) !important;
+    /* Неоновая фиолетовая граница (под стиль 100Points Pro) */
+    border: 1px solid rgba(119, 90, 250, 0.4) !important;
+    /* Мягкое свечение */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), inset 0 0 8px rgba(119, 90, 250, 0.1) !important;
+    /* Яркий текст с небольшим свечением */
+    color: #b39dfa !important;
+    text-shadow: 0 0 5px rgba(119, 90, 250, 0.4) !important;
+}
+
+@keyframes slideDownHw {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#hwork-drafts-panel {
+    position: fixed;
+    top: 70px;
+    right: 15px;
+    width: 250px;
+    background: rgba(13, 13, 20, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(119, 90, 250, 0.4);
+    border-radius: 12px;
+    z-index: 10000;
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+}
+
+.draft-header {
+    padding: 10px;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    text-align: center;
+    border-bottom: 1px solid rgba(119, 90, 250, 0.2);
+    color: #b39dfa;
+}
+
+.draft-list {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.draft-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.draft-item:hover {
+    background: rgba(119, 90, 250, 0.15);
+}
+
+.draft-item div {
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+
+.draft-item small {
+    font-size: 10px;
+    color: #888;
+    display: flex;
+    justify-content: space-between;
+}
+
+.ans-glow { color: #00ffaa; font-weight: bold; }
     `);
 
     function updateThemeClass() {
@@ -2132,11 +2454,41 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
         processVisuals(lessonNode);
     }
 
-    function fetchRealStatus(lessonId, badge, lessonNode) {
-        let attempts = retryCount.get(lessonId) || 0;
-        if (attempts >= 3) return;
-        retryCount.set(lessonId, attempts + 1);
+function applyHwCountToDOM(count, lessonNode) {
+    // Если данных совсем нет (API еще не ответил), выходим
+    if (count === undefined || count === null) return;
 
+    // 1. Ищем или создаем плашку в любом случае
+    let hwBadge = lessonNode.querySelector('.custom-hw-count');
+
+    if (!hwBadge) {
+        hwBadge = document.createElement('div');
+        hwBadge.className = 'custom-hw-count';
+        lessonNode.appendChild(hwBadge);
+    }
+
+    // 2. Всегда обновляем текст, чтобы данные были актуальны
+    const text = `ДЗ: ${count}`;
+    if (hwBadge.innerText !== text) {
+        hwBadge.innerText = text;
+    }
+
+    // 3. УПРАВЛЕНИЕ ВИДИМОСТЬЮ (Финальное слово)
+    const percentBadge = lessonNode.querySelector('.custom-percent-badge');
+    const isBadgeHidden = percentBadge && getComputedStyle(percentBadge).display === 'none';
+
+    // Условие: показываем только если ВКЛЮЧЕНО в настройках И плашка процентов не скрыта
+    if (settings.showHwCount === true && !isBadgeHidden) {
+        hwBadge.style.display = 'inline-flex';
+    } else {
+        // В любом другом случае (выключено в меню или скрыт бейдж) — прячем
+        hwBadge.style.display = 'none';
+    }
+}
+
+    // Функция запроса данных
+    function fetchHomeworkCount(lessonId, lessonNode) {
+        // Используем уже имеющийся механизм authToken
         GM_xmlhttpRequest({
             method: "GET",
             url: `https://api.100points.ru/api/student/lessons/${lessonId}/personal`,
@@ -2144,26 +2496,113 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
             onload: function(res) {
                 try {
                     const data = JSON.parse(res.responseText);
-                    const hw = data.homeworks?.difficulties?.[0] || data.homeworks || {};
 
-                    const status = hw.student_status || data.student_status;
-                    const deadline = hw.deadline || data.deadline;
-                    const isPassed = hw.is_deadline_passed !== undefined ? hw.is_deadline_passed : data.is_deadline_passed;
+                    // Считаем количество домашек в массиве difficulties
+                    const hwArray = data.homeworks?.difficulties || [];
+                    const count = hwArray.length;
 
-                    // Сохраняем в долгосрочный кэш
-                    cache.set(lessonId, { status, deadline, is_deadline_passed: isPassed });
+                    // Сохраняем в кэш (дополняем существующий или создаем новый)
+                    const cachedData = cache.get(lessonId) || {};
+                    cachedData.hwCount = count;
+                    cache.set(lessonId, cachedData);
 
-                    // Применяем статус
-                    applyStatusToDOM(status, badge, lessonNode, deadline);
-
-                    // Если статус финальный, блокируем повторные проверки
-                    if (status === 'passed') {
-                        badge.setAttribute('data-checked', 'true');
-                    }
-                } catch (e) {}
+                    // Отрисовываем
+                    applyHwCountToDOM(count, lessonNode);
+                } catch (e) {
+                    console.error("Ошибка при получении количества ДЗ:", e);
+                }
             }
         });
     }
+
+    // Основная управляющая функция (вызывай её в цикле аналогично processStatusLogic)
+    function processHomeworkCountLogic(lessonNode) {
+        const link = lessonNode.querySelector('a');
+        const lessonId = link?.href.match(/lesson\/(\d+)/)?.[1];
+        if (!lessonId) return;
+
+        // 1. Пытаемся отрисовать из кэша немедленно
+        const cached = cache.get(lessonId);
+        if (cached && cached.hwCount !== undefined) {
+            applyHwCountToDOM(cached.hwCount, lessonNode);
+        }
+
+        // 2. Если карточка еще не помечена как синхронизированная в текущем проходе
+        if (!lessonNode.hasAttribute('data-hw-synced')) {
+            // Если в кэше пусто или данных нет — идем в API
+            if (!cached || cached.hwCount === undefined) {
+                lessonNode.setAttribute('data-hw-synced', 'true');
+                fetchRealStatus(lessonId, null, lessonNode); // Твоя функция теперь обновляет и ДЗ
+            } else {
+                // Если данные в кэше есть, просто помечаем, что всё ок
+                lessonNode.setAttribute('data-hw-synced', 'true');
+            }
+        }
+    }
+
+function fetchRealStatus(lessonId, badge, lessonNode) {
+    let attempts = retryCount.get(lessonId) || 0;
+    if (attempts >= 3) return;
+    retryCount.set(lessonId, attempts + 1);
+
+    GM_xmlhttpRequest({
+        method: "GET",
+        url: `https://api.100points.ru/api/student/lessons/${lessonId}/personal`,
+        headers: { "Authorization": authToken, "Accept": "application/json" },
+        onload: function(res) {
+            try {
+                // ПРОВЕРКА 1: Существует ли еще узел урока в DOM?
+                // Если мы ушли на другую страницу, lessonNode станет "осиротевшим"
+                if (!lessonNode || !document.contains(lessonNode)) return;
+
+                const data = JSON.parse(res.responseText);
+                const difficulties = data.homeworks?.difficulties || [];
+                const hw = difficulties[0] || data.homeworks || {};
+
+                let status = hw.student_status || data.student_status;
+                const deadline = hw.deadline || data.deadline;
+                const isPassed = hw.is_deadline_passed !== undefined ? hw.is_deadline_passed : data.is_deadline_passed;
+
+                if (difficulties.length > 1) {
+                    const allDone = difficulties.every(d => d.student_status === 'passed' || d.has_been_passed === true);
+                    status = allDone ? 'passed' : 'studying';
+                }
+
+                cache.set(lessonId, {
+                    status,
+                    deadline,
+                    is_deadline_passed: isPassed,
+                    hwCount: difficulties.length
+                });
+
+                // Находим актуальный бейдж
+                let currentBadge = badge && document.contains(badge) ? badge : lessonNode.querySelector('.Rjxh7');
+
+                // Проверяем: если статус 'passed', но бейдж УЖЕ зеленый (стандартный),
+                // то не вызываем applyStatusToDOM, чтобы не вешать метку (fix)
+                const isAlreadyPassed = currentBadge && (
+                    currentBadge.classList.contains('Plz9L') || // Класс выполненного урока
+                    currentBadge.querySelector('rect[fill="#00D05A"]') // Зеленая иконка
+                );
+
+                if (status === 'passed' && isAlreadyPassed) {
+                    // Урок и так пройден, просто обновляем кэш и выходим
+                    currentBadge.setAttribute('data-checked', 'true');
+                } else {
+                    // Если есть расхождение или статус другой — применяем фикс/визуал
+                    applyStatusToDOM(status, currentBadge, lessonNode, deadline);
+                }
+
+                // Количество ДЗ рисуем в любом случае (как ты и просил)
+                if (typeof applyHwCountToDOM === 'function') {
+                    applyHwCountToDOM(difficulties.length, lessonNode);
+                }
+            } catch (e) {
+                console.error("Ошибка при обработке ответа API:", e);
+            }
+        }
+    });
+}
 
     function getProgressBarStyle(style) {
         let css = '';
@@ -2500,6 +2939,13 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
             </select>
         </div>
 
+        <div class="menu-section">
+    <div class="menu-checkbox-section">
+        <label>Отображать количество ДЗ</label>
+        <input type="checkbox" class="pts-checkbox" data-setting="showHwCount" ${settings.showHwCount !== false ? 'checked' : ''}>
+    </div>
+</div>
+
         <hr class="menu-divider">
 
         <div class="menu-group-title">📝 Задания (ДЗ)</div>
@@ -2588,6 +3034,25 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
                 // Применяем изменения мгновенно
                 updateDynamicStyles();
                 if (window.updateChatControl) updateChatControl();
+
+                if (key === 'showHwCount') {
+                    // 1. Обновляем глобальный объект настроек (чтобы applyLogic его видела)
+                    if (typeof settings !== 'undefined') {
+                        settings.showHwCount = val;
+                    }
+
+                    // 2. Сохраняем в память браузера
+                    localStorage.setItem('your_settings_key', JSON.stringify(settings));
+
+                    const displayValue = val ? 'inline-flex' : 'none';
+
+                    // 3. Мгновенно меняем видимость
+                    document.querySelectorAll('.custom-hw-count').forEach((el) => {
+                        el.style.setProperty('display', displayValue, 'important');
+                    });
+
+                    console.log(`[Fix] Настройка showHwCount изменена на: ${val}`);
+                }
 
                 // Если выключили таймер — удаляем наш блок
                 if (key === 'showCustomTimer' && !val) {
@@ -2771,6 +3236,14 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
         }
     }
 
+    let applyTimeout;
+    function debouncedApplyLogic() {
+        clearTimeout(applyTimeout);
+        applyTimeout = setTimeout(() => {
+            applyLogic();
+        }, 300);
+    }
+
     function applyLogic() {
         if (location.href !== lastUrl) {
             lastUrl = location.href;
@@ -2780,6 +3253,9 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
 
         // --- ОБРАБОТКА УРОКОВ ---
         document.querySelectorAll('.mUkKn').forEach(lesson => {
+            // Сначала запускаем логику количества ДЗ — она теперь безусловная
+            if (settings.showHwCount === true) processHomeworkCountLogic(lesson);
+
             const badge = lesson.querySelector('.Rjxh7');
             if (!badge) return;
 
@@ -2790,11 +3266,10 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
         });
     }
 
-    window.addEventListener('scroll', applyLogic, {passive: true});
-    document.addEventListener('click', () => setTimeout(applyLogic, 100));
+    window.addEventListener('scroll', debouncedApplyLogic, {passive: true});
+    document.addEventListener('click', () => debouncedApplyLogic);
     new MutationObserver(updateThemeClass).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     updateThemeClass();
-    setInterval(applyLogic, 600);
 
     function interpolateColor(color1, color2, factor) {
         const parse = c => ({
@@ -2936,8 +3411,8 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
                     // Вместо удаления или display:none, ставим прозрачность в 0
                     const assistive = clonedDoc.querySelectorAll('mjx-assistive-mml');
                     assistive.forEach(el => {
-                        el.style.setProperty('display', 'none', 'important'); // на всякий случай
-                        el.style.setProperty('opacity', '0', 'important');    // основное решение
+                        el.style.setProperty('display', 'none', 'important');
+                        el.style.setProperty('opacity', '0', 'important');
                         el.style.setProperty('position', 'absolute', 'important');
                         el.style.setProperty('pointer-events', 'none', 'important');
                     });
@@ -3225,69 +3700,96 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
     let timerDataCaptured = false;
     let lastActiveId = null;
 
-    // --- 2. ЛОГИКА ОБРАБОТКИ ДАННЫХ ---
-    function handleTimerLogic(data, lessonId) {
-        const homework = data.homeworks;
-        if (!homework) return;
+    function handlePersistentTimer() {
+        const oldTimer = document.querySelector('.swNXM');
+        const lessonId = window.location.pathname.match(/\d+/)?.[0];
 
-        const maxSeconds = homework.max_time_seconds || 0;
+        if (!lessonId || !oldTimer) return;
 
-        // Проверка: нужен ли таймер вообще?
-        if (maxSeconds === 0) {
-            console.log("Таймер не предусмотрен для этого урока.");
-            return;
+        const finishKey = `timer_finish_${lessonId}`;
+        const startKey = `timer_start_${lessonId}`;
+
+        let savedEndTime = localStorage.getItem(finishKey);
+        let savedStartTime = localStorage.getItem(startKey);
+
+        // 1. Инициализация (парсинг оригинала при первом запуске)
+        if (!savedEndTime) {
+            const timeText = oldTimer.querySelector('.ovZ4y')?.innerText;
+            const match = timeText?.match(/(\d{2}):(\d{2}):(\d{2})/);
+            if (match) {
+                const seconds = parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + parseInt(match[3]);
+                savedEndTime = (Date.now() + (seconds * 1000)).toString();
+                savedStartTime = Date.now().toString();
+
+                localStorage.setItem(finishKey, savedEndTime);
+                localStorage.setItem(startKey, savedStartTime);
+            } else return;
         }
 
-        // Здесь можно добавить проверку на статус (если дз уже сдано)
-        // Например: if (data.status === 'done') return;
+        // 2. Создание или поиск нашего интерфейса
+        let myTimerDisplay = document.getElementById('custom-timer-display');
+        let myStartDisplay = document.getElementById('custom-timer-start-time');
 
-        startPersistentTimer(lessonId, maxSeconds);
-    }
-
-    // --- 3. ЗАПУСК И ХРАНЕНИЕ ТАЙМЕРА ---
-    function startPersistentTimer(lessonId, totalSeconds) {
-        const storageKey = `timer_finish_${lessonId}`;
-        let endTime = localStorage.getItem(storageKey);
-
-        if (!endTime) {
-            endTime = Date.now() + (totalSeconds * 1000);
-            localStorage.setItem(storageKey, endTime);
-        }
-
-        // Функция обновления (вызывается в интервале ниже или здесь)
-        window.updateCustomTimerDisplay = () => {
-            const oldTimer = document.querySelector('.swNXM');
-            let display = document.getElementById('custom-timer-display');
-
-            // Если старый таймер есть, а нашего еще нет — заменяем
-            if (oldTimer && !display) {
-                const newTimer = document.createElement('div');
-                newTimer.className = 'custom-timer-container';
-                newTimer.innerHTML = `
-                <div class="custom-timer-content">
+        if (!myTimerDisplay) {
+            const container = document.createElement('div');
+            container.className = 'custom-timer-container';
+            container.innerHTML = `
+            <div class="custom-timer-content">
+                <div class="custom-timer-main">
                     <span class="custom-timer-label">Осталось:</span>
                     <span class="custom-timer-value" id="custom-timer-display">--:--:--</span>
                 </div>
-            `;
-                oldTimer.replaceWith(newTimer);
-                display = document.getElementById('custom-timer-display');
-            }
-
-            if (display) {
-                const now = Date.now();
-                const timeLeft = Math.max(0, Math.floor((endTime - now) / 1000));
-
-                const h = Math.floor(timeLeft / 3600).toString().padStart(2, '0');
-                const m = Math.floor((timeLeft % 3600) / 60).toString().padStart(2, '0');
-                const s = (timeLeft % 60).toString().padStart(2, '0');
-
-                display.innerText = `${h}:${m}:${s}`;
-                if (timeLeft < 600) display.classList.add('timer-low');
-            }
-        };
+                <div class="custom-timer-started">Начат в: <span id="custom-timer-start-time">--:--</span></div>
+            </div>
+        `;
+        // Скрываем оригинал, чтобы не мешал, и ставим свой
+        oldTimer.style.display = 'none';
+        if (!oldTimer.parentNode.querySelector('.custom-timer-container')) {
+            oldTimer.after(container);
+        }
+        myTimerDisplay = document.getElementById('custom-timer-display');
+        myStartDisplay = document.getElementById('custom-timer-start-time');
     }
 
-//async function updatePointsDisplay() {
+    // 3. Обновление цифр
+    if (myTimerDisplay && savedEndTime) {
+        const now = Date.now();
+        const timeLeft = Math.max(0, Math.floor((parseInt(savedEndTime) - now) / 1000));
+
+        // Вывод "Начат в" (HH:MM)
+        if (myStartDisplay && savedStartTime && myStartDisplay.innerText === '--:--') {
+            const startDate = new Date(parseInt(savedStartTime));
+            myStartDisplay.innerText = `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        // --- ЛОГИКА ЗВУКОВЫХ УВЕДОМЛЕНИЙ ---
+        const checkAlert = (thresholdSec, label) => {
+            const alertKey = `alert_${label}_${lessonId}`;
+            //timeLeft — это секунды, которые мы посчитали выше
+            if (timeLeft <= thresholdSec && timeLeft > thresholdSec - 5 && !localStorage.getItem(alertKey)) {
+                playTimerAlert();
+                localStorage.setItem(alertKey, 'true');
+            }
+        };
+
+        checkAlert(3600, '1h');
+        checkAlert(1800, '30m');
+        checkAlert(600, '10m');
+
+        // Отрисовка оставшегося времени
+        const h = Math.floor(timeLeft / 3600).toString().padStart(2, '0');
+        const m = Math.floor((timeLeft % 3600) / 60).toString().padStart(2, '0');
+        const s = (timeLeft % 60).toString().padStart(2, '0');
+        myTimerDisplay.innerText = `${h}:${m}:${s}`;
+
+        // Красный цвет, если осталось мало времени
+        if (timeLeft < 600) {
+            myTimerDisplay.classList.add('timer-low');
+        } else {
+            myTimerDisplay.classList.remove('timer-low');
+        }
+    }
+}
 
 
     function applyCleanMode() {
@@ -3329,6 +3831,38 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
         }
     }
 
+    function updateDraftsUI() {
+        let panel = document.getElementById('hwork-drafts-panel');
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.id = 'hwork-drafts-panel';
+            panel.innerHTML = `<div class="draft-header">Черновики ДЗ</div><div class="draft-list"></div>`;
+            document.body.appendChild(panel);
+        }
+
+        const list = panel.querySelector('.draft-list');
+        const currentData = JSON.stringify(hwork_drafts);
+        if (list.getAttribute('data-last') === currentData) return;
+        list.setAttribute('data-last', currentData);
+
+        if (hwork_drafts.length === 0) {
+            list.innerHTML = '<div style="padding:15px;font-size:11px;color:#555">Нажмите "Сохранить" в ДЗ...</div>';
+            return;
+        }
+
+        list.innerHTML = '';
+        hwork_drafts.forEach(draft => {
+            const el = document.createElement('div');
+            el.className = 'draft-item';
+            el.innerHTML = `
+            <div>Черновик ${draft.time}</div>
+            <small>ID: ${draft.hwId} <span class="ans-glow">${draft.count} отв.</span></small>
+        `;
+            el.onclick = () => restoreHworkDraft(draft);
+            list.appendChild(el);
+        });
+    }
+
     // Запускаем при загрузке и при кликах на кнопки
     setTimeout(centerActiveTask, 500);
     document.addEventListener('click', (e) => {
@@ -3341,6 +3875,7 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
     const init = () => {
         if (!document.body) return setTimeout(init, 100);
         createMenu();
+        //createDraftsUI();
         updateDynamicStyles();
         updateThemeClass();
     };
@@ -3360,7 +3895,9 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
         }
 
         updatePointsUI();
+        updateDraftsUI();
         applyCleanMode();
+
 
         const parentWrapper = document.querySelector('.wCNrd');
         const chatContainer = document.querySelector('.vqMgR');
@@ -3372,63 +3909,8 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
             }
         }
 
-        const oldTimer = document.querySelector('.swNXM');
-        const lessonId = window.location.pathname.match(/\d+/)?.[0];
-
-        if (lessonId) {
-            let savedEndTime = localStorage.getItem(`timer_finish_${lessonId}`);
-
-            // ПАРСИНГ (если в памяти пусто)
-            if (!savedEndTime && oldTimer) {
-                const timeText = oldTimer.querySelector('.ovZ4y')?.innerText;
-                const match = timeText?.match(/(\d{2}):(\d{2}):(\d{2})/);
-                if (match) {
-                    const seconds = parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + parseInt(match[3]);
-                    savedEndTime = Date.now() + (seconds * 1000);
-                    localStorage.setItem(`timer_finish_${lessonId}`, savedEndTime);
-                }
-            }
-
-            if (oldTimer && savedEndTime) {
-                let myTimer = document.getElementById('custom-timer-display');
-                if (!myTimer) {
-                    const container = document.createElement('div');
-                    container.className = 'custom-timer-container';
-                    container.innerHTML = `
-                    <div class="custom-timer-content">
-                        <span class="custom-timer-label">Осталось:</span>
-                        <span class="custom-timer-value" id="custom-timer-display">--:--:--</span>
-                    </div>
-                `;
-                    oldTimer.after(container);
-                    myTimer = document.getElementById('custom-timer-display');
-                }
-
-                const timeLeft = Math.max(0, Math.floor((savedEndTime - Date.now()) / 1000));
-
-                // --- ЛОГИКА ЗВУКОВЫХ УВЕДОМЛЕНИЙ ---
-                const checkAlert = (thresholdSec, label) => {
-                    const alertKey = `alert_${label}_${lessonId}`;
-                    //timeLeft — это секунды, которые мы посчитали выше
-                    if (timeLeft <= thresholdSec && timeLeft > thresholdSec - 5 && !localStorage.getItem(alertKey)) {
-                        playTimerAlert();
-                        localStorage.setItem(alertKey, 'true');
-                    }
-                };
-
-                checkAlert(3600, '1h'); // 1 час
-                checkAlert(1800, '30m'); // 30 минут
-                checkAlert(600, '10m'); // 10 минут
-                // ----------------------------------
-
-                const h = Math.floor(timeLeft / 3600).toString().padStart(2, '0');
-                const m = Math.floor((timeLeft % 3600) / 60).toString().padStart(2, '0');
-                const s = (timeLeft % 60).toString().padStart(2, '0');
-
-                myTimer.innerText = `${h}:${m}:${s}`;
-                if (timeLeft < 600) myTimer.classList.add('timer-low');
-            }
-        }
+        // --- ВЫЗОВ ТАЙМЕРА ОДНОЙ СТРОКОЙ ---
+        handlePersistentTimer();
 
         // --- АВТО-ЦЕНТРИРОВАНИЕ ---
         const currentActive = document.querySelector('.Hlt15.HqV_y');
@@ -3464,5 +3946,5 @@ body.is-dark-mode .bO43I.wIzLx .SIFGw {
     document.addEventListener('click', unlockAudio);
 
     new MutationObserver(updateThemeClass).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    window.addEventListener('scroll', applyLogic, {passive: true});
+    window.addEventListener('scroll', debouncedApplyLogic, {passive: true});
 })();
