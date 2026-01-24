@@ -75,7 +75,8 @@ const _nFetch = window.fetch;
 const _nXSend = XMLHttpRequest.prototype.send;
 const _nXOpen = XMLHttpRequest.prototype.open;
 
-let hwork_drafts = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]');
+// Теперь это объект: { "ID1": [...], "ID2": [...] }
+let hwork_drafts = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '{}');
 let isManualClick = false;
 
 // 1. Фиксация клика
@@ -130,28 +131,31 @@ function countAnswersInPayload(data) {
 // 4. Сохранение
 function saveToDrafts(url, body) {
     const data = getRequestData(body);
-    if (!data || (!data.answer && !Array.isArray(data))) {
-        console.warn("[Drafts Debug] Попытка сохранить пустой или неверный запрос.");
-        return;
-    }
+    if (!data) return;
 
-    const answersCount = countAnswersInPayload(data);
     const hwId = url.match(/homework\/(\d+)\/save/)?.[1] || '???';
+    const answersCount = countAnswersInPayload(data);
 
     const newDraft = {
         id: Date.now(),
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         hwId: hwId,
         url: url,
-        payload: data, // Здесь теперь лежат все поля: и answer, и draft_id
+        payload: data,
         count: answersCount
     };
 
-    hwork_drafts.unshift(newDraft);
-    hwork_drafts = hwork_drafts.slice(0, 10);
-    localStorage.setItem(DRAFTS_KEY, JSON.stringify(hwork_drafts));
+    // Если для этого ID еще нет списка — создаем
+    if (!hwork_drafts[hwId]) hwork_drafts[hwId] = [];
 
-    console.log(`%c[Drafts Debug] СОХРАНЕНО! (ID: ${hwId}, Ответов: ${answersCount})`, "background: #008800; color: #fff; padding: 2px 5px;");
+    // Добавляем в начало списка именно этой домашки
+    hwork_drafts[hwId].unshift(newDraft);
+
+    // Ограничение: 10 черновиков именно для этой домашки
+    hwork_drafts[hwId] = hwork_drafts[hwId].slice(0, 10);
+
+    localStorage.setItem(DRAFTS_KEY, JSON.stringify(hwork_drafts));
+    console.log(`%c[Drafts Debug] СОХРАНЕНО для ID ${hwId}!`, "background: #008800; color: #fff; padding: 2px 5px;");
 }
 
 // 5. Перехватчики (XHR и Fetch)
@@ -2299,22 +2303,30 @@ body.is-dark-mode .bO43I.iFg7b .ukm10 span {
     color: #ff8e8e !important;
 }
 
-/* --- СТАНДАРТНАЯ ТЕМА (Нейтральная) --- */
+/* --- СТИЛЬ КОЛИЧЕСТВА ДЗ В ДИЗАЙНЕ OUTLINE --- */
 .custom-hw-count {
+    --card-color: #775AFA; /* Основной фиолетовый цвет для этого стиля */
+
     position: absolute !important;
     top: 55px !important;
     right: 20px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    background: rgba(0, 0, 0, 0.5) !important;
-    backdrop-filter: blur(4px);
-    color: #fff !important;
-    padding: 2px 8px !important;
+
+    /* Логика из твоего .badge-outline */
+    background: #ffffff !important;
+    border: 2px solid var(--card-color) !important;
+    color: var(--card-color) !important;
+    box-shadow: 0 0 4px var(--card-color) !important;
+
+    padding: 2px 10px !important;
     border-radius: 6px !important;
-    font-size: 10px !important;
-    font-weight: bold !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
     z-index: 15 !important;
     pointer-events: none;
     white-space: nowrap !important;
@@ -2334,6 +2346,7 @@ body.is-dark-mode .custom-hw-count {
     text-shadow: 0 0 5px rgba(119, 90, 250, 0.4) !important;
 }
 
+/* Добавим легкий глоу-эффект при появлении */
 @keyframes slideDownHw {
     from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
@@ -2344,8 +2357,8 @@ body.is-dark-mode .custom-hw-count {
     top: 70px;
     right: 15px;
     width: 250px;
-    background: rgba(13, 13, 20, 0.95);
-    backdrop-filter: blur(8px);
+    background: rgba(13, 13, 20, 0.98);
+    backdrop-filter: blur(12px);
     border: 1px solid rgba(119, 90, 250, 0.4);
     border-radius: 12px;
     z-index: 10000;
@@ -2353,16 +2366,29 @@ body.is-dark-mode .custom-hw-count {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     display: flex;
     flex-direction: column;
+
+    /* Логика "выплывания" */
+    max-height: 40px; /* Высота только заголовка */
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#hwork-drafts-panel:hover {
+    max-height: 500px; /* Раскрываем список */
 }
 
 .draft-header {
-    padding: 10px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-weight: 700;
-    font-size: 13px;
+    font-size: 12px;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    text-align: center;
     border-bottom: 1px solid rgba(119, 90, 250, 0.2);
     color: #b39dfa;
+    cursor: default;
 }
 
 .draft-list {
@@ -2455,35 +2481,30 @@ body.is-dark-mode .custom-hw-count {
     }
 
 function applyHwCountToDOM(count, lessonNode) {
-    // Если данных совсем нет (API еще не ответил), выходим
+    const hwBadge = lessonNode.querySelector('.custom-hw-count');
+
+    // ЖЕСТКИЙ РУБИЛЬНИК
+    if (settings.showHwCount === false) {
+        if (hwBadge) hwBadge.style.display = 'none';
+        return; // Дальше код не идет, ничего не создается
+    }
+
     if (count === undefined || count === null) return;
 
-    // 1. Ищем или создаем плашку в любом случае
-    let hwBadge = lessonNode.querySelector('.custom-hw-count');
-
-    if (!hwBadge) {
-        hwBadge = document.createElement('div');
-        hwBadge.className = 'custom-hw-count';
-        lessonNode.appendChild(hwBadge);
+    let targetBadge = hwBadge;
+    if (!targetBadge) {
+        targetBadge = document.createElement('div');
+        targetBadge.className = 'custom-hw-count';
+        lessonNode.appendChild(targetBadge);
     }
 
-    // 2. Всегда обновляем текст, чтобы данные были актуальны
     const text = `ДЗ: ${count}`;
-    if (hwBadge.innerText !== text) {
-        hwBadge.innerText = text;
-    }
+    if (targetBadge.innerText !== text) targetBadge.innerText = text;
 
-    // 3. УПРАВЛЕНИЕ ВИДИМОСТЬЮ (Финальное слово)
     const percentBadge = lessonNode.querySelector('.custom-percent-badge');
     const isBadgeHidden = percentBadge && getComputedStyle(percentBadge).display === 'none';
 
-    // Условие: показываем только если ВКЛЮЧЕНО в настройках И плашка процентов не скрыта
-    if (settings.showHwCount === true && !isBadgeHidden) {
-        hwBadge.style.display = 'inline-flex';
-    } else {
-        // В любом другом случае (выключено в меню или скрыт бейдж) — прячем
-        hwBadge.style.display = 'none';
-    }
+    targetBadge.style.display = isBadgeHidden ? 'none' : 'inline-flex';
 }
 
     // Функция запроса данных
@@ -2515,30 +2536,30 @@ function applyHwCountToDOM(count, lessonNode) {
         });
     }
 
-    // Основная управляющая функция (вызывай её в цикле аналогично processStatusLogic)
-    function processHomeworkCountLogic(lessonNode) {
-        const link = lessonNode.querySelector('a');
-        const lessonId = link?.href.match(/lesson\/(\d+)/)?.[1];
-        if (!lessonId) return;
+function processHomeworkCountLogic(lessonNode) {
+// ПРОВЕРКА №1: Если выключено — вообще не заходим в логику
+    if (settings.showHwCount === false) {
+        return;
+    }
 
-        // 1. Пытаемся отрисовать из кэша немедленно
-        const cached = cache.get(lessonId);
-        if (cached && cached.hwCount !== undefined) {
-            applyHwCountToDOM(cached.hwCount, lessonNode);
-        }
+    const link = lessonNode.querySelector('a');
+    const lessonId = link?.href.match(/lesson\/(\d+)/)?.[1];
+    if (!lessonId) return;
 
-        // 2. Если карточка еще не помечена как синхронизированная в текущем проходе
-        if (!lessonNode.hasAttribute('data-hw-synced')) {
-            // Если в кэше пусто или данных нет — идем в API
-            if (!cached || cached.hwCount === undefined) {
-                lessonNode.setAttribute('data-hw-synced', 'true');
-                fetchRealStatus(lessonId, null, lessonNode); // Твоя функция теперь обновляет и ДЗ
-            } else {
-                // Если данные в кэше есть, просто помечаем, что всё ок
-                lessonNode.setAttribute('data-hw-synced', 'true');
-            }
+    const cached = cache.get(lessonId);
+    if (cached && cached.hwCount !== undefined) {
+        applyHwCountToDOM(cached.hwCount, lessonNode);
+    }
+
+    if (!lessonNode.hasAttribute('data-hw-synced')) {
+        if (!cached || cached.hwCount === undefined) {
+            lessonNode.setAttribute('data-hw-synced', 'true');
+            fetchRealStatus(lessonId, null, lessonNode);
+        } else {
+            lessonNode.setAttribute('data-hw-synced', 'true');
         }
     }
+}
 
 function fetchRealStatus(lessonId, badge, lessonNode) {
     let attempts = retryCount.get(lessonId) || 0;
@@ -3036,22 +3057,16 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
                 if (window.updateChatControl) updateChatControl();
 
                 if (key === 'showHwCount') {
-                    // 1. Обновляем глобальный объект настроек (чтобы applyLogic его видела)
-                    if (typeof settings !== 'undefined') {
-                        settings.showHwCount = val;
-                    }
+                    settings.showHwCount = val;
+                    saveSettings();
 
-                    // 2. Сохраняем в память браузера
-                    localStorage.setItem('your_settings_key', JSON.stringify(settings));
-
-                    const displayValue = val ? 'inline-flex' : 'none';
-
-                    // 3. Мгновенно меняем видимость
-                    document.querySelectorAll('.custom-hw-count').forEach((el) => {
-                        el.style.setProperty('display', displayValue, 'important');
+                    // Прячем или удаляем плашки принудительно
+                    document.querySelectorAll('.custom-hw-count').forEach(el => {
+                        el.style.display = 'none'; // Скрываем
+                        // el.remove(); // Можно даже удалять, если хочешь полной очистки
                     });
 
-                    console.log(`[Fix] Настройка showHwCount изменена на: ${val}`);
+                    console.log(`[Fix] Видимость ДЗ переключена: ${val}`);
                 }
 
                 // Если выключили таймер — удаляем наш блок
@@ -3061,8 +3076,13 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
                 }
             };
 
-            el.oninput = updateAll;
-            el.onchange = updateAll;
+            // В самом конце createMenu
+            el.onchange = updateAll; // Оставляем только onchange, он надежнее для чекбоксов
+
+            // Если это ползунок, оставляем oninput для живого обновления цифр
+            if (el.type === 'range') {
+                el.oninput = updateAll;
+            }
         });
     }
 
@@ -3160,11 +3180,17 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
         let badgeColor = finalColor;
         let isUrgent = false;
 
-        // --- ПРИОРЕТЕТ ДЕДЛАЙНАМ ---
         // Если есть данные из кеша и урок не пройден полностью
+        // --- ПРИОРЕТЕТ ДЕДЛАЙНАМ ---
         if (lessonData && p < 100) {
             const { status, deadline, is_deadline_passed } = lessonData;
-            if (!is_deadline_passed && deadline && status !== 'passed' && status !== 'checking') {
+            if (status === 'checking') {
+                // СОСТОЯНИЕ: На проверке
+                badgeText = '——';
+                badgeColor = '#FFA500'; // Оранжевый (неон)
+            }
+
+            else if (!is_deadline_passed && deadline && status !== 'passed') {
                 const parts = deadline.match(/(\d{2})\.(\d{2})\.(\d{4})/);
                 if (parts) {
                     const dDate = new Date(`${parts[3]}-${parts[2]}-${parts[1]}T23:59:59`);
@@ -3173,10 +3199,19 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
                         const d = Math.floor(diff / (1000 * 60 * 60 * 24));
                         const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
                         badgeText = `${d}д ${h}ч`;
-                        badgeColor = (d < 2) ? '#FF4747' : '#775AFA';
+
+                        // ИСПРАВЛЕНИЕ: Если дедлайна больше 2 дней — СТРОГО фиолетовый.
+                        // Если меньше 2 дней — красный (срочно).
                         isUrgent = (d < 2);
+                        badgeColor = isUrgent ? '#FF4747' : '#775AFA';
                     }
                 }
+            }
+
+            // Если статус "not_started" и нет дедлайна (редкий случай)
+            if (!badgeText && status === 'not_started') {
+                badgeText = '——';
+                badgeColor = '#555555'; // Серый
             }
         }
 
@@ -3189,13 +3224,29 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
         if (badgeText) {
             pbBadge.innerText = badgeText;
             pbBadge.style.display = 'block';
-            pbBadge.style.setProperty('--badge-color', badgeColor);
+
+            // ОБНОВЛЯЕМ ЦВЕТОВУЮ ПЕРЕМЕННУЮ (для CSS)
+            pbBadge.style.setProperty('--card-color', badgeColor, 'important');
+
+            // Если выбран плоский стиль (flat), красим фон напрямую
+            if (!settings.badgeStyle || settings.badgeStyle === 'flat') {
+                pbBadge.style.setProperty('background', badgeColor, 'important');
+                pbBadge.style.setProperty('color', 'white', 'important');
+            }
+
+            // УПРАВЛЯЕМ КЛАССАМИ (не затирая их)
+            // Удаляем старые стили, если они были
+            const allStyles = ['badge-outline', 'badge-glass', 'badge-cyber', 'badge-minimal'];
+            pbBadge.classList.remove(...allStyles);
+
+            // Добавляем текущий стиль из настроек
             if (settings.badgeStyle && settings.badgeStyle !== 'flat') {
                 pbBadge.classList.add('badge-' + settings.badgeStyle);
-            } else {
-                pbBadge.style.background = badgeColor;
             }
-            if (isUrgent) pbBadge.classList.add('deadline-urgent');
+
+            pbBadge.classList.toggle('deadline-urgent', isUrgent);
+        } else {
+            pbBadge.style.display = 'none';
         }
 
         if (progressBar) {
@@ -3831,37 +3882,52 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
         }
     }
 
-    function updateDraftsUI() {
-        let panel = document.getElementById('hwork-drafts-panel');
-        if (!panel) {
-            panel = document.createElement('div');
-            panel.id = 'hwork-drafts-panel';
-            panel.innerHTML = `<div class="draft-header">Черновики ДЗ</div><div class="draft-list"></div>`;
-            document.body.appendChild(panel);
-        }
+function updateDraftsUI() {
+    const panel = document.getElementById('hwork-drafts-panel');
+    const match = window.location.href.match(/homework\/(\d+)/);
+    const currentHwId = match ? match[1] : null;
 
-        const list = panel.querySelector('.draft-list');
-        const currentData = JSON.stringify(hwork_drafts);
-        if (list.getAttribute('data-last') === currentData) return;
-        list.setAttribute('data-last', currentData);
+    // Показываем панель только если мы внутри конкретной домашки
+    if (!currentHwId) {
+        if (panel) panel.style.display = 'none';
+        return;
+    }
 
-        if (hwork_drafts.length === 0) {
-            list.innerHTML = '<div style="padding:15px;font-size:11px;color:#555">Нажмите "Сохранить" в ДЗ...</div>';
-            return;
-        }
+    if (!panel) {
+        const newPanel = document.createElement('div');
+        newPanel.id = 'hwork-drafts-panel';
+        newPanel.innerHTML = `<div class="draft-header">⬇ Черновики ДЗ</div><div class="draft-list"></div>`;
+        document.body.appendChild(newPanel);
+        return;
+    }
 
-        list.innerHTML = '';
-        hwork_drafts.forEach(draft => {
-            const el = document.createElement('div');
-            el.className = 'draft-item';
-            el.innerHTML = `
+    panel.style.display = 'flex';
+    const list = panel.querySelector('.draft-list');
+
+    // Берем черновики только для текущего ID
+    const relevantDrafts = hwork_drafts[currentHwId] || [];
+
+    const currentData = JSON.stringify(relevantDrafts);
+    if (list.getAttribute('data-last') === currentData) return;
+    list.setAttribute('data-last', currentData);
+
+    if (relevantDrafts.length === 0) {
+        list.innerHTML = '<div style="padding:15px;font-size:11px;color:#555;text-align:center">Для этой домашки нет черновиков</div>';
+        return;
+    }
+
+    list.innerHTML = '';
+    relevantDrafts.forEach(draft => {
+        const el = document.createElement('div');
+        el.className = 'draft-item';
+        el.innerHTML = `
             <div>Черновик ${draft.time}</div>
             <small>ID: ${draft.hwId} <span class="ans-glow">${draft.count} отв.</span></small>
         `;
-            el.onclick = () => restoreHworkDraft(draft);
-            list.appendChild(el);
-        });
-    }
+        el.onclick = () => restoreHworkDraft(draft);
+        list.appendChild(el);
+    });
+}
 
     // Запускаем при загрузке и при кликах на кнопки
     setTimeout(centerActiveTask, 500);
@@ -3875,7 +3941,6 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
     const init = () => {
         if (!document.body) return setTimeout(init, 100);
         createMenu();
-        //createDraftsUI();
         updateDynamicStyles();
         updateThemeClass();
     };
@@ -3898,6 +3963,12 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
         updateDraftsUI();
         applyCleanMode();
 
+        // ЖЕСТКАЯ ПРОВЕРКА ВИДИМОСТИ
+        if (settings.showHwCount === false) {
+            document.querySelectorAll('.custom-hw-count').forEach(el => {
+                if (el.style.display !== 'none') el.style.display = 'none';
+            });
+        }
 
         const parentWrapper = document.querySelector('.wCNrd');
         const chatContainer = document.querySelector('.vqMgR');
