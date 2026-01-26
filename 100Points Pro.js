@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         100Points Pro: Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      7.2
+// @version      7.1
 // @description  Твики для стобалльного
 // @author       bebebebebe
 // @match        https://lk.100points.ru/*
@@ -4228,7 +4228,7 @@ function updateDraftsUI() {
         const rawUrl = 'https://raw.githubusercontent.com/neverbxrn/100points.pro/main/100Points%20Pro.js';
 
         // Ссылка для "автоматической" установки (Tampermonkey сам поймет, что это скрипт)
-        const installUrl = 'https://github.com/neverbxrn/100points.pro/blob/main/100Points%20Pro.js';
+        const installUrl = 'https://neverbxrn.github.io/100points.pro/';
 
         console.log('[Update Check] Текущая версия:', currentVersion);
 
