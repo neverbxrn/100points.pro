@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>100Points Pro | Инструкция по установке от Gemini 😎</title>
+    <title>100Points Pro | Инструкция по установке</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -13,6 +13,7 @@
             --card: #1a1a1f;
             --text: #e0e0e0;
             --accent: #00d05a;
+            --warning: #ffa500;
         }
 
         body {
@@ -144,12 +145,29 @@
         <p>Полное руководство по установке скрипта</p>
     </header>
 
+    <div class="step-card" style="border: 1px dashed var(--warning); background: rgba(255, 165, 0, 0.05);">
+        <div class="step-header">
+            <div class="step-number" style="background: var(--warning);">?</div>
+            <h2 style="color: var(--warning);">Не открывается магазин расширений?</h2>
+        </div>
+        <p>Если сайт с Tampermonkey не загружается, вам нужно наладить доступ к сервисам Google и YouTube.</p>
+        <div class="check-item" style="border-left: 3px solid var(--warning);">
+            <div>
+                <strong>Решение:</strong> Используйте <b>Zapret</b> для обхода ограничений.<br>
+                <a href="https://github.com/Flowseal/zapret-discord-youtube" target="_blank" style="color: var(--warning); font-weight: bold; text-decoration: underline;">Скачать Zapret (GitHub)</a>
+                <p style="font-size: 0.85rem; margin-top: 10px; opacity: 0.8;">
+                    <i>Инструкция: скачайте архив, распакуйте и запустите <b>general.bat</b> от имени администратора.</i>
+                </p>
+            </div>
+        </div>
+    </div>
+
     <div class="step-card">
         <div class="step-header">
             <div class="step-number">1</div>
             <h2>Установка Tampermonkey</h2>
         </div>
-        <p>Для начала выберите расширение под ваш браузер. Оно необходимо для запуска скрипта.</p>
+        <p>Выберите расширение под ваш браузер. Оно необходимо для работы скрипта.</p>
         <div class="browser-links">
             <a href="https://chromewebstore.google.com/detail/dhdgffkkebhmkfjojejmpbldmpobfkfo" target="_blank" class="btn btn-primary">
                 <i class="fab fa-chrome"></i> Chrome / Edge / Opera
@@ -165,7 +183,7 @@
             <div class="step-number" style="background: var(--secondary);">!</div>
             <h2 style="color: var(--secondary);">Критическая настройка (Важно)</h2>
         </div>
-        <p>Современные браузеры блокируют скрипты по умолчанию. <b>Без этих действий ничего не заработает:</b></p>
+        <p>Современные браузеры блокируют скрипты по умолчанию. <b>Без этого ничего не заработает:</b></p>
         
         <div class="check-item">
             <span class="icon-check">✓</span>
@@ -182,7 +200,7 @@
                 <strong>Включение пользовательских скриптов:</strong><br>
                 1. Нажмите на иконку Tampermonkey в браузере -> <b>Панель управления</b>.<br>
                 2. Перейдите во вкладку <b>Настройки</b> (Settings).<br>
-                3. Измените "Режим конфигурации" на <b>"Начинающий"</b> или <b>"Продвинутый"</b>.<br>
+                3. Измените "Режим конфигурации" на <b>"Продвинутый"</b>.<br>
                 4. Пролистайте вниз до раздела <b>"Безопасность"</b> и включите пункт <b>"Пользовательские скрипты" (User Scripts)</b>.
                 <img src="https://github.com/user-attachments/assets/526425fd-cd43-4e49-b2b8-b142b3ef120c" class="screenshot" alt="userscripts">
             </div>
@@ -194,12 +212,12 @@
             <div class="step-number">2</div>
             <h2>Добавление кода</h2>
         </div>
-        <p>Теперь нужно перенести сам код скрипта в расширение:</p>
+        <p>Скопируйте код скрипта и вставьте его в расширение:</p>
         <ul>
-            <li>Откройте файл с кодом: <a href="https://raw.githubusercontent.com/neverbxrn/100points.pro/main/100Points%20Pro.js" target="_blank" style="color: var(--primary);">Открыть 100Points Pro.js</a></li>
-            <li>Нажмите <code>Ctrl + A</code> (выделить всё) и <code>Ctrl + C</code> (копировать).</li>
-            <li>В Tampermonkey нажмите <b>"Создать новый скрипт"</b> (значок плюса).</li>
-            <li>Удалите весь текст в редакторе и нажмите <code>Ctrl + V</code> (вставить).</li>
+            <li>Откройте код: <a href="https://raw.githubusercontent.com/neverbxrn/100points.pro/main/100Points%20Pro.js" target="_blank" style="color: var(--primary);">Открыть 100Points Pro.js</a></li>
+            <li>Нажмите <code>Ctrl + A</code>, затем <code>Ctrl + C</code>.</li>
+            <li>В Tampermonkey нажмите <b>"Создать новый скрипт"</b> (+).</li>
+            <li>Удалите всё в редакторе и нажмите <code>Ctrl + V</code>.</li>
             <li>Нажмите <b>Файл -> Сохранить</b>.</li>
         </ul>
     </div>
@@ -207,9 +225,9 @@
     <div class="step-card">
         <div class="step-header">
             <div class="step-number">3</div>
-            <h2>Проверка</h2>
+            <h2>Готово</h2>
         </div>
-        <p>Зайдите в личный кабинет 100Points. Скрипт должен активироваться автоматически. Вы увидите обновленные карточки уроков и боковое меню.</p>
+        <p>Обновите страницу 100Points. Если всё верно, интерфейс обновится автоматически.</p>
         <img src="https://github.com/user-attachments/assets/5e6946e6-8d94-4240-b73d-2ea2b42e477e" class="screenshot" alt="Success">
     </div>
 
