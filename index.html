@@ -208,19 +208,37 @@
         </div>
     </div>
 
-    <div class="step-card">
+<div class="step-card">
         <div class="step-header">
             <div class="step-number">2</div>
             <h2>Добавление кода</h2>
         </div>
-        <p>Скопируйте код скрипта и вставьте его в расширение:</p>
-        <ul>
-            <li>Откройте код: <a href="https://raw.githubusercontent.com/neverbxrn/100points.pro/main/100Points%20Pro.js" target="_blank" style="color: var(--primary);">Открыть 100Points Pro.js</a></li>
-            <li>Нажмите <code>Ctrl + A</code>, затем <code>Ctrl + C</code>.</li>
-            <li>В Tampermonkey нажмите <b>"Создать новый скрипт"</b> (+).</li>
-            <li>Удалите всё в редакторе и нажмите <code>Ctrl + V</code>.</li>
-            <li>Нажмите <b>Файл -> Сохранить</b>.</li>
-        </ul>
+        <p>Выберите один из двух способов добавления скрипта:</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
+            
+            <div style="background: rgba(119, 90, 250, 0.05); padding: 20px; border-radius: 15px; border: 1px solid var(--primary);">
+                <h3 style="color: var(--primary); margin-top: 0;"><i class="fas fa-file-import"></i> Способ А: Импорт URL (Проще)</h3>
+                <ol style="padding-left: 20px; font-size: 0.95rem;">
+                    <li>Нажмите на иконку Tampermonkey -> <b>Панель управления</b>.</li>
+                    <li>Перейдите во вкладку <b>"Утилиты"</b> (Utilities).</li>
+                    <li>В поле "Импорт из URL" вставьте ссылку ниже:</li>
+                </ol>
+                <code style="display: block; word-break: break-all; font-size: 0.8rem; margin: 10px 0; color: var(--text); background: #000; border: 1px solid #333;">https://raw.githubusercontent.com/neverbxrn/100points.pro/main/100Points%20Pro.js</code>
+                <p style="font-size: 0.85rem; opacity: 0.8;">Нажмите кнопку <b>"Импорт"</b>, а затем подтвердите установку.</p>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.02); padding: 20px; border-radius: 15px; border: 1px solid #333;">
+                <h3 style="color: #fff; margin-top: 0;"><i class="fas fa-copy"></i> Способ Б: Ручной</h3>
+                <ul style="padding-left: 20px; font-size: 0.95rem;">
+                    <li>Откройте <a href="https://raw.githubusercontent.com/neverbxrn/100points.pro/main/100Points%20Pro.js" target="_blank" style="color: var(--primary);">код скрипта</a>.</li>
+                    <li>Нажмите <code>Ctrl + A</code>, затем <code>Ctrl + C</code>.</li>
+                    <li>В Tampermonkey нажмите <b>"Создать новый скрипт"</b> (+).</li>
+                    <li>Удалите стандартный текст, нажмите <code>Ctrl + V</code> и <b>Файл -> Сохранить</b>.</li>
+                </ul>
+            </div>
+
+        </div>
     </div>
 
     <div class="step-card">
