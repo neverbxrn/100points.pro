@@ -3291,10 +3291,10 @@ function processVisuals(lesson) {
         }
 
         // --- 4. ФИНАЛЬНЫЙ ФОЛЛБЕК (Для пустых случаев, как в твоем JSON) ---
-        if (!badgeText) {
+        else if (!badgeText) {
             badgeText = '——';
             // Если дедлайна нет и статус "Нужно выполнить", делаем плашку нейтрально-серой
-            badgeColor = '#555555';
+            badgeColor = '#8e74ff';
         }
 
         // --- ОТРИСОВКА ---
@@ -4218,6 +4218,104 @@ function updateDraftsUI() {
         initDownloadButtons();
         initGlobalDownload();
     }, 800);
+
+    async function checkForUpdates() {
+        // Автоматически берем версию из метаданных скрипта
+        const currentVersion = GM_info.script.version;
+        const rawUrl = 'https://raw.githubusercontent.com/neverbxrn/100points.pro/main/100Points%20Pro.js';
+
+        // Ссылка для "автоматической" установки (Tampermonkey сам поймет, что это скрипт)
+        const installUrl = 'https://github.com/neverbxrn/100points.pro/blob/main/100Points%20Pro.js';
+
+        console.log('[Update Check] Текущая версия:', currentVersion);
+
+        try {
+            const response = await fetch(rawUrl, { cache: "no-store" });
+            if (!response.ok) return;
+
+            const text = await response.text();
+            // Регулярка теперь ищет именно твой формат: // @version  7.0
+            const match = text.match(/\/\/ @version\s+([\d.]+)/);
+
+            if (match && match[1]) {
+                const latestVersion = match[1].trim();
+                console.log(`[Update Check] На GitHub найдена версия: ${latestVersion}`);
+
+                // Сравниваем версии как числа или строки
+                if (parseFloat(latestVersion) > parseFloat(currentVersion)) {
+                    console.log('[Update Check] Доступна новая версия!');
+                    showUpdateNotify(latestVersion, installUrl);
+                } else {
+                    console.log('[Update Check] У вас актуальная версия.');
+                }
+            }
+        } catch (e) {
+            console.error('[Update Check] Ошибка:', e);
+        }
+    }
+
+    function showUpdateNotify(newVersion, url) {
+        if (document.getElementById('update-notification-toast')) return;
+
+        const notify = document.createElement('div');
+        notify.id = 'update-notification-toast';
+        notify.style.cssText = `
+        position: fixed !important;
+        bottom: 100px !important;
+        right: 30px !important;
+        width: 300px !important;
+        background: #1a1a1a !important;
+        color: white !important;
+        padding: 20px !important;
+        border-radius: 16px !important;
+        z-index: 999999 !important;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.6) !important;
+        font-family: 'Segoe UI', Roboto, sans-serif !important;
+        border: 1px solid #775AFA !important;
+        animation: slideInUpdate 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    `;
+
+        notify.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+            <div style="background: #775AFA; padding: 8px; border-radius: 50%;">🚀</div>
+            <div style="font-weight: bold; font-size: 16px;">Доступна v${newVersion}</div>
+        </div>
+        <div style="font-size: 13px; color: #ccc; margin-bottom: 18px; line-height: 1.4;">
+            Нажми «Обновить», чтобы тебя перекинуло на страничку с обновлением.
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="${url}" id="confirm-update" style="background: #775AFA; color: white; padding: 10px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: 600; flex: 1; text-align: center; transition: 0.2s;">
+                Обновиться
+            </a>
+            <button id="close-update-notify" style="background: #333; border: none; color: #aaa; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px; flex: 0.5;">
+                Не
+            </button>
+        </div>
+    `;
+
+        document.body.appendChild(notify);
+
+        // Добавляем анимацию появления
+        const style = document.createElement('style');
+        style.innerHTML = `
+        @keyframes slideInUpdate {
+            from { transform: translateX(100%) opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    `;
+        document.head.appendChild(style);
+
+        // При клике на "Обновить" мы просто закрываем уведомление и открываем ссылку.
+        // Браузер/Tampermonkey сделает остальное.
+        document.getElementById('confirm-update').onclick = () => {
+            setTimeout(() => notify.remove(), 1000);
+        };
+
+        document.getElementById('close-update-notify').onclick = () => notify.remove();
+    }
+
+    // Запуск (лучше с задержкой в пару секунд, чтобы не тормозить загрузку страницы)
+    setTimeout(checkForUpdates, 3000);
 
     // --- СЛУШАТЕЛЬ КЛИКОВ (для центрирования) ---
     // Этот блок ставится отдельно, один раз
