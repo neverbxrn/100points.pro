@@ -179,17 +179,17 @@
         </div>
     </div>
 
-    <div class="step-card important-card">
+<div class="step-card important-card">
         <div class="step-header">
             <div class="step-number" style="background: var(--secondary);">!</div>
             <h2 style="color: var(--secondary);">Критическая настройка (Важно)</h2>
         </div>
-        <p>Современные браузеры блокируют скрипты по умолчанию. <b>Без этого ничего не заработает:</b></p>
+        <p>Современные браузеры блокируют скрипты по умолчанию. <b>Без этих действий ничего не заработает:</b></p>
         
         <div class="check-item">
             <span class="icon-check">✓</span>
             <div>
-                <strong>Для Chrome, Edge, Yandex:</strong><br>
+                <strong>1. Режим разработчика:</strong><br>
                 Введите в адресную строку <code>chrome://extensions</code>. В правом верхнем углу включите тумблер <b>"Режим разработчика"</b>.
                 <img src="https://github.com/user-attachments/assets/c8b2e3e5-ce40-424f-b546-74614ed7c837" class="screenshot" alt="Dev Mode">
             </div>
@@ -198,13 +198,16 @@
         <div class="check-item">
             <span class="icon-check">✓</span>
             <div>
-                <strong>Включение пользовательских скриптов:</strong><br>
-                1. Нажмите на иконку Tampermonkey в браузере -> <b>Панель управления</b>.<br>
-                2. Перейдите во вкладку <b>Настройки</b> (Settings).<br>
-                3. Измените "Режим конфигурации" на <b>"Продвинутый"</b>.<br>
-                4. Пролистайте вниз до раздела <b>"Безопасность"</b> и включите пункт <b>"Пользовательские скрипты" (User Scripts)</b>.
-                <img src="https://github.com/user-attachments/assets/526425fd-cd43-4e49-b2b8-b142b3ef120c" class="screenshot" alt="userscripts">
+                <strong>2. Разрешение для скриптов (User Scripts):</strong><br>
+                1. На той же странице <code>chrome://extensions</code> найдите карточку <b>Tampermonkey</b> и нажмите кнопку <b>"Сведения"</b> (Details).<br>
+                2. Пролистайте страницу вниз до самого конца.<br>
+                3. Найдите тумблер <b>"Разрешить использование пользовательских скриптов"</b> (Allow access to user scripts) и включите его.
+                <img src="https://github.com/user-attachments/assets/526425fd-cd43-4e49-b2b8-b142b3ef120c" class="screenshot" alt="Enable User Scripts">
             </div>
+        </div>
+        
+        <div style="margin-top: 15px; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; font-size: 0.9rem;">
+            <i>* Если этого тумблера нет, убедитесь, что "Режим разработчика" (пункт 1) точно включен, и перезапустите браузер.</i>
         </div>
     </div>
 
