@@ -2420,6 +2420,104 @@ body.is-dark-mode .custom-hw-count {
 }
 
 .ans-glow { color: #00ffaa; font-weight: bold; }
+
+/* ОБЕРТКА */
+.pts-banner-wrapper {
+    position: relative !important;
+    width: 100%;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* КНОПКА (КРЕСТИК) */
+.pts-banner-btn {
+    position: absolute !important;
+    top: 12px;
+    right: 15px;
+    width: 28px;
+    height: 28px;
+    background: rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(5px);
+    color: white !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 30;
+    font-size: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    transition: all 0.3s ease;
+}
+
+.pts-banner-btn:hover {
+    background: #775AFA !important;
+    border-color: #775AFA !important;
+}
+
+/* ЛОГИКА СВОРАЧИВАНИЯ БАННЕРА */
+.pts-banner-checker:checked ~ .DmWLh {
+    max-height: 48px !important; /* Высота компактной плашки */
+    min-height: 48px !important;
+    padding: 0 20px !important;
+    margin-bottom: 10px !important;
+    background-color: #1a1a1a !important; /* Темный нейтральный фон при скрытии */
+    border: 1px solid rgba(119, 90, 250, 0.3) !important;
+    opacity: 0.8;
+}
+
+/* ПЛАВНОЕ ИСЧЕЗНОВЕНИЕ ВНУТРЕННОСТЕЙ */
+.DmWLh * {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.pts-banner-checker:checked ~ .DmWLh * {
+    opacity: 0 !important;
+    pointer-events: none;
+    transform: translateY(-5px);
+}
+
+/* Текст "Развернуть" вместо пустоты (опционально) */
+.pts-banner-checker:checked ~ .DmWLh::after {
+    content: 'Баннер оплаты свернут';
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    font-size: 12px;
+    font-weight: 500;
+    opacity: 1;
+}
+
+/* ПОВОРОТ КРЕСТИКА В ПЛЮСИК */
+.pts-banner-checker:checked ~ .pts-banner-btn {
+    transform: rotate(45deg);
+    background: rgba(119, 90, 250, 0.2) !important;
+}
+
+/* ОБЩАЯ АНИМАЦИЯ БАННЕРА */
+.DmWLh {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    overflow: hidden !important;
+    position: relative !important;
+}
+
+/* ШАПКА САЙТА (Должна быть сверху) */
+.ntGcE {
+    z-index: 100 !important;
+    position: relative !important;
+}
+
+/* ПАНЕЛЬ ВКЛАДОК (Уроки курса / Бустеры) */
+.TsqGd {
+    position: relative !important;
+    z-index: 10 !important; /* Низкий индекс, чтобы нырять под шапку */
+}
+
+/* Чтобы при скролле ничего не вылезало */
+.TsqGd[role="tablist"] {
+    isolation: isolate;
+}
     `);
 
     function updateThemeClass() {
@@ -3485,6 +3583,35 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
         }
     }
 
+    //ЛОГИКА ДЛЯ БАННЕРА
+
+    let tabsRemovalStartTime = null; // Переменная для хранения времени появления шапки
+
+    // Внутри setInterval
+    const header = document.querySelector('.ntGcE');
+    const tabs = document.querySelector('.TsqGd');
+
+    // Исправленная функция баннера (с защитой от insertBefore error)
+    function initBannerToggle() {
+        const banner = document.querySelector('.DmWLh:not(.banner-processed)');
+        if (!banner || !banner.parentNode) return; // Проверка parentNode критична
+
+        banner.classList.add('banner-processed');
+        const wrapper = document.createElement('div');
+        wrapper.className = 'pts-banner-wrapper';
+
+        // Безопасная вставка
+        const parent = banner.parentNode;
+        if (parent) {
+            parent.insertBefore(wrapper, banner);
+            wrapper.innerHTML = `
+            <input type="checkbox" id="pts-banner-toggle" hidden="true" class="pts-banner-checker">
+            <label for="pts-banner-toggle" class="pts-banner-btn" title="Свернуть/Развернуть">✕</label>
+        `;
+            wrapper.appendChild(banner);
+        }
+    }
+
     // Функция для вставки кнопки «Скачать всё»
     function initGlobalDownload() {
         if (!settings.showMassCaptureBtn) return;
@@ -3970,6 +4097,25 @@ function updateDraftsUI() {
             });
         }
 
+
+        // --- ЛОГИКА УДАЛЕНИЯ ВКЛАДОК ---
+        const header = document.querySelector('.ntGcE');
+        const tabs = document.querySelector('.TsqGd');
+
+        if (header) {
+            if (!tabsRemovalStartTime) {
+                tabsRemovalStartTime = Date.now();
+            }
+
+            const elapsed = Date.now() - tabsRemovalStartTime;
+            // Если прошло 2.5 сек и табы на месте
+            if (elapsed > 2500 && tabs) {
+                tabs.remove();
+                console.log("[UI] Вкладки курса удалены");
+            }
+        }
+        // ------------------------------
+
         const parentWrapper = document.querySelector('.wCNrd');
         const chatContainer = document.querySelector('.vqMgR');
 
@@ -3994,6 +4140,7 @@ function updateDraftsUI() {
             }
         }
 
+        initBannerToggle();
         initDownloadButtons();
         initGlobalDownload();
     }, 800);
