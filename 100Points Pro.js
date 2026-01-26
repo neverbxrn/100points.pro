@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         100Points Pro: Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      7.1
+// @version      7.2
 // @description  Твики для стобалльного
 // @author       bebebebebe
 // @match        https://lk.100points.ru/*
