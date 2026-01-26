@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>100Points Pro | Инструкция</title>
+    <title>100Points Pro | Инструкция по установке</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
             --primary: #775AFA;
+            --secondary: #ff4747;
             --bg: #0f0f12;
             --card: #1a1a1f;
             --text: #e0e0e0;
+            --accent: #00d05a;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Roboto, sans-serif;
             background-color: var(--bg);
             color: var(--text);
             line-height: 1.6;
@@ -30,14 +32,14 @@
 
         header {
             text-align: center;
-            margin-bottom: 60px;
+            margin-bottom: 50px;
         }
 
         h1 {
-            font-size: 3rem;
+            font-size: clamp(2rem, 8vw, 3.5rem);
             color: #fff;
             margin-bottom: 10px;
-            background: linear-gradient(45deg, #775AFA, #a28cff);
+            background: linear-gradient(45deg, var(--primary), #a28cff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -45,85 +47,93 @@
         .step-card {
             background: var(--card);
             border-radius: 20px;
-            padding: 30px;
+            padding: clamp(20px, 5vw, 40px);
             margin-bottom: 30px;
             border: 1px solid rgba(255,255,255,0.05);
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            transition: transform 0.3s ease;
         }
 
-        .step-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--primary);
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
         .step-number {
-            display: inline-block;
             background: var(--primary);
             color: #fff;
-            width: 35px;
+            min-width: 35px;
             height: 35px;
             text-align: center;
             line-height: 35px;
             border-radius: 50%;
             font-weight: bold;
-            margin-right: 15px;
         }
 
         h2 {
-            display: inline;
             color: #fff;
+            margin: 0;
             font-size: 1.5rem;
         }
 
-        .code-block {
-            background: #000;
-            padding: 15px;
-            border-radius: 10px;
-            position: relative;
-            margin-top: 15px;
+        .important-card {
+            border: 2px solid var(--secondary);
+            background: rgba(255, 71, 71, 0.05);
         }
 
-        .btn-copy {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px 25px;
+        .browser-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .btn {
+            display: block;
+            text-align: center;
+            padding: 12px;
             border-radius: 10px;
-            cursor: pointer;
-            font-weight: bold;
             text-decoration: none;
-            display: inline-block;
-            margin-top: 15px;
+            font-weight: bold;
             transition: 0.3s;
         }
 
-        .btn-copy:hover {
-            filter: brightness(1.2);
-            box-shadow: 0 0 15px rgba(119, 90, 250, 0.4);
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-secondary { background: #333; color: white; border: 1px solid #444; }
+        .btn-primary:hover { filter: brightness(1.2); transform: translateY(-2px); }
+
+        code {
+            background: #000;
+            padding: 3px 8px;
+            border-radius: 5px;
+            color: var(--secondary);
+            font-family: monospace;
         }
 
-        img {
-            max-width: 100%;
-            border-radius: 10px;
-            margin-top: 20px;
+        .screenshot {
+            width: 100%;
+            border-radius: 12px;
+            margin: 15px 0;
             border: 1px solid #333;
         }
 
-        .warning {
-            border-left: 4px solid #ffa500;
-            background: rgba(255, 165, 0, 0.1);
+        ul { padding-left: 20px; }
+        li { margin-bottom: 10px; }
+
+        .check-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: rgba(255,255,255,0.03);
             padding: 15px;
-            margin: 20px 0;
-            border-radius: 0 10px 10px 0;
+            border-radius: 10px;
+            margin-top: 10px;
         }
 
-        footer {
-            text-align: center;
-            margin-top: 50px;
-            opacity: 0.5;
-            font-size: 0.9rem;
-        }
+        .icon-check { color: var(--accent); font-weight: bold; }
+
+        footer { text-align: center; margin-top: 60px; opacity: 0.6; padding-bottom: 40px; }
     </style>
 </head>
 <body>
@@ -131,61 +141,80 @@
 <div class="container">
     <header>
         <h1>100Points Pro</h1>
-        <p>Ультимативный гайд по установке скрипта</p>
+        <p>Полное руководство по установке скрипта</p>
     </header>
 
     <div class="step-card">
-        <div class="step-number">1</div>
-        <h2>Установите Tampermonkey</h2>
-        <p>Для начала работы вам нужен менеджер скриптов. Это расширение, которое позволяет запускать кастомные функции на сайтах.</p>
-        <a href="https://chromewebstore.google.com/detail/dhdgffkkebhmkfjojejmpbldmpobfkfo" target="_blank" class="btn-copy">Скачать для Chrome / Edge</a>
+        <div class="step-header">
+            <div class="step-number">1</div>
+            <h2>Установка Tampermonkey</h2>
+        </div>
+        <p>Для начала выберите расширение под ваш браузер. Оно необходимо для запуска скрипта.</p>
+        <div class="browser-links">
+            <a href="https://chromewebstore.google.com/detail/dhdgffkkebhmkfjojejmpbldmpobfkfo" target="_blank" class="btn btn-primary">
+                <i class="fab fa-chrome"></i> Chrome / Edge / Opera
+            </a>
+            <a href="https://addons.mozilla.org/ru/firefox/addon/tampermonkey/" target="_blank" class="btn btn-secondary">
+                <i class="fab fa-firefox"></i> Firefox
+            </a>
+        </div>
+    </div>
 
-    <div class="step-card" style="border: 2px solid #ff4747; background: rgba(255, 71, 71, 0.05);">
-        <div class="step-number" style="background: #ff4747;">!</div>
-        <h2 style="color: #ff4747;">Критически важная настройка</h2>
-        <p>Без этого шага скрипт <b>не будет работать</b> из-за политики безопасности браузера (Chrome, Edge, Opera).</p>
+    <div class="step-card important-card">
+        <div class="step-header">
+            <div class="step-number" style="background: var(--secondary);">!</div>
+            <h2 style="color: var(--secondary);">Критическая настройка (Важно)</h2>
+        </div>
+        <p>Современные браузеры блокируют скрипты по умолчанию. <b>Без этих действий ничего не заработает:</b></p>
         
-        <div style="margin-top: 20px;">
-            <p>1. Перейдите в раздел расширений, вставив в адресную строку: <br>
-               <code style="background: #000; padding: 5px 10px; border-radius: 5px; color: #ff4747;">chrome://extensions</code>
-            </p>
-            
-            <p>2. В правом верхнем углу включите тумблер <b>"Режим разработчика"</b> (Developer Mode).</p>
-            <img src="https://github.com/user-attachments/assets/c8b2e3e5-ce40-424f-b546-74614ed7c837" alt="Включение режима разработчика">
-
-            <p>3. Нажмите на иконку <b>Tampermonkey</b> в панели браузера -> <b>Панель управления</b> -> вкладка <b>Настройки</b>.</p>
-            <p>4. Пролистайте вниз до раздела <b>"Безопасность"</b> и убедитесь, что в пункте <b>"Пользовательские скрипты"</b> (Experimental Mode / User Scripts) стоит галочка или статус "Включено".</p>
+        <div class="check-item">
+            <span class="icon-check">✓</span>
+            <div>
+                <strong>Для Chrome, Edge, Yandex:</strong><br>
+                Введите в адресную строку <code>chrome://extensions</code>. В правом верхнем углу включите тумблер <b>"Режим разработчика"</b>.
+                <img src="https://github.com/user-attachments/assets/c8b2e3e5-ce40-424f-b546-74614ed7c837" class="screenshot" alt="Dev Mode">
+            </div>
         </div>
 
-        <div class="warning" style="border-color: #ff4747; color: #ffbaba;">
-            <strong>Внимание:</strong> Если вы используете Яндекс.Браузер, режим разработчика находится в разделе "Дополнения". Если тумблер не включен, Tampermonkey даже не предложит вам сохранить скрипт!
+        <div class="check-item">
+            <span class="icon-check">✓</span>
+            <div>
+                <strong>Включение пользовательских скриптов:</strong><br>
+                1. Нажмите на иконку Tampermonkey в браузере -> <b>Панель управления</b>.<br>
+                2. Перейдите во вкладку <b>Настройки</b> (Settings).<br>
+                3. Измените "Режим конфигурации" на <b>"Начинающий"</b> или <b>"Продвинутый"</b>.<br>
+                4. Пролистайте вниз до раздела <b>"Безопасность"</b> и включите пункт <b>"Пользовательские скрипты" (User Scripts)</b>.
+            </div>
         </div>
     </div>
 
     <div class="step-card">
-        <div class="step-number">2</div>
-        <h2>Скопируйте код скрипта</h2>
-        <p>Нажмите на кнопку ниже, чтобы открыть файл с кодом. Скопируйте <b>весь</b> текст (Ctrl+A, Ctrl+C).</p>
-        <a href="https://raw.githubusercontent.com/neverbxrn/100points.pro/main/100Points%20Pro.js" target="_blank" class="btn-copy">Открыть код скрипта</a>
+        <div class="step-header">
+            <div class="step-number">2</div>
+            <h2>Добавление кода</h2>
+        </div>
+        <p>Теперь нужно перенести сам код скрипта в расширение:</p>
+        <ul>
+            <li>Откройте файл с кодом: <a href="https://raw.githubusercontent.com/neverbxrn/100points.pro/main/100Points%20Pro.js" target="_blank" style="color: var(--primary);">Открыть 100Points Pro.js</a></li>
+            <li>Нажмите <code>Ctrl + A</code> (выделить всё) и <code>Ctrl + C</code> (копировать).</li>
+            <li>В Tampermonkey нажмите <b>"Создать новый скрипт"</b> (значок плюса).</li>
+            <li>Удалите весь текст в редакторе и нажмите <code>Ctrl + V</code> (вставить).</li>
+            <li>Нажмите <b>Файл -> Сохранить</b>.</li>
+        </ul>
+        <img src="https://github.com/user-attachments/assets/526425fd-cd43-4e49-b2b8-b142b3ef120c" class="screenshot" alt="Save Script">
     </div>
 
     <div class="step-card">
-        <div class="step-number">3</div>
-        <h2>Создайте новый скрипт</h2>
-        <p>Нажмите на иконку Tampermonkey в браузере -> <b>"Создать новый скрипт"</b>. Удалите стандартный шаблон и вставьте скопированный код.</p>
-        <p>Затем нажмите <b>Файл -> Сохранить</b> (Ctrl+S).</p>
-        <img src="https://github.com/user-attachments/assets/526425fd-cd43-4e49-b2b8-b142b3ef120c" alt="Скриншот создания">
-    </div>
-
-    <div class="step-card">
-        <div class="step-number">4</div>
-        <h2>Готово!</h2>
-        <p>Просто обновите вкладку с личным кабинетом 100Points. Если всё сделано правильно, интерфейс преобразится автоматически.</p>
-        <img src="https://github.com/user-attachments/assets/59036ef1-490a-48b8-97e4-71d4b6888e06" alt="Результат">
+        <div class="step-header">
+            <div class="step-number">3</div>
+            <h2>Проверка</h2>
+        </div>
+        <p>Зайдите в личный кабинет 100Points. Скрипт должен активироваться автоматически. Вы увидите обновленные карточки уроков и боковое меню.</p>
+        <img src="https://github.com/user-attachments/assets/59036ef1-490a-48b8-97e4-71d4b6888e06" class="screenshot" alt="Success">
     </div>
 
     <footer>
-        <p>Создано с ❤️ для учеников Стобалльного | <a href="https://github.com/neverbxrn/100points.pro" style="color: var(--primary)">GitHub проекта</a></p>
+        <p>Создано для учеников 100Points | <a href="https://github.com/neverbxrn/100points.pro" style="color: var(--primary); text-decoration: none;">GitHub</a></p>
     </footer>
 </div>
 
