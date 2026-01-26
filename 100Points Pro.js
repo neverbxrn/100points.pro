@@ -4099,7 +4099,7 @@ function updateDraftsUI() {
 
 
         // --- ЛОГИКА УДАЛЕНИЯ ВКЛАДОК ---
-        const header = document.querySelector('.ntGcE');
+        const header = document.querySelector('.UVfvX');
         const tabs = document.querySelector('.TsqGd');
 
         if (header) {
