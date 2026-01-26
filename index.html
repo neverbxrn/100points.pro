@@ -139,8 +139,26 @@
         <h2>Установите Tampermonkey</h2>
         <p>Для начала работы вам нужен менеджер скриптов. Это расширение, которое позволяет запускать кастомные функции на сайтах.</p>
         <a href="https://chromewebstore.google.com/detail/dhdgffkkebhmkfjojejmpbldmpobfkfo" target="_blank" class="btn-copy">Скачать для Chrome / Edge</a>
-        <div class="warning">
-            <strong>Важно для Chrome/Edge:</strong> После установки зайдите в настройки расширений браузера и включите <b>"Режим разработчика"</b>. Без него скрипт не запустится!
+
+    <div class="step-card" style="border: 2px solid #ff4747; background: rgba(255, 71, 71, 0.05);">
+        <div class="step-number" style="background: #ff4747;">!</div>
+        <h2 style="color: #ff4747;">Критически важная настройка</h2>
+        <p>Без этого шага скрипт <b>не будет работать</b> из-за политики безопасности браузера (Chrome, Edge, Opera).</p>
+        
+        <div style="margin-top: 20px;">
+            <p>1. Перейдите в раздел расширений, вставив в адресную строку: <br>
+               <code style="background: #000; padding: 5px 10px; border-radius: 5px; color: #ff4747;">chrome://extensions</code>
+            </p>
+            
+            <p>2. В правом верхнем углу включите тумблер <b>"Режим разработчика"</b> (Developer Mode).</p>
+            <img src="https://github.com/user-attachments/assets/c8b2e3e5-ce40-424f-b546-74614ed7c837" alt="Включение режима разработчика">
+
+            <p>3. Нажмите на иконку <b>Tampermonkey</b> в панели браузера -> <b>Панель управления</b> -> вкладка <b>Настройки</b>.</p>
+            <p>4. Пролистайте вниз до раздела <b>"Безопасность"</b> и убедитесь, что в пункте <b>"Пользовательские скрипты"</b> (Experimental Mode / User Scripts) стоит галочка или статус "Включено".</p>
+        </div>
+
+        <div class="warning" style="border-color: #ff4747; color: #ffbaba;">
+            <strong>Внимание:</strong> Если вы используете Яндекс.Браузер, режим разработчика находится в разделе "Дополнения". Если тумблер не включен, Tampermonkey даже не предложит вам сохранить скрипт!
         </div>
     </div>
 
