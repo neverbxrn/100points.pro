@@ -3999,36 +3999,145 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
     }
 
 function updateDraftsUI() {
-    const panel = document.getElementById('hwork-drafts-panel');
+    let panel = document.getElementById('hwork-drafts-panel');
     const match = window.location.href.match(/homework\/(\d+)/);
     const currentHwId = match ? match[1] : null;
 
-    // Показываем панель только если мы внутри конкретной домашки
     if (!currentHwId) {
         if (panel) panel.style.display = 'none';
         return;
     }
 
     if (!panel) {
-        const newPanel = document.createElement('div');
-        newPanel.id = 'hwork-drafts-panel';
-        newPanel.innerHTML = `<div class="draft-header">⬇ Черновики ДЗ</div><div class="draft-list"></div>`;
-        document.body.appendChild(newPanel);
+        panel = document.createElement('div');
+        panel.id = 'hwork-drafts-panel';
+        // Добавляем инлайновые стили для мягкости
+        panel.style.transition = 'transform 0.1s ease-out, opacity 0.3s ease';
+        panel.innerHTML = `<div class="draft-header" style="cursor: grab; user-select: none;">⬇ Черновики ДЗ</div><div class="draft-list"></div>`;
+        document.body.appendChild(panel);
+
+        // --- ФИЗИКА, ИНЕРЦИЯ И ГРАНИЦЫ ---
+        const header = panel.querySelector('.draft-header');
+        let isDragging = false;
+        let vx = 0, vy = 0;
+        let lastMouseX, lastMouseY;
+        let rafId = null;
+
+        const physicsLoop = () => {
+            if (isDragging) return;
+
+            vx *= 0.98;
+            vy *= 0.98;
+
+            if (Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1) {
+                let currX = parseFloat(panel.dataset.posX || panel.offsetLeft);
+                let currY = parseFloat(panel.dataset.posY || panel.offsetTop);
+
+                let nextX = currX + vx;
+                let nextY = currY + vy;
+
+                // ОТСКОК ПРИ ИНЕРЦИИ
+                const padding = 5;
+                if (nextX < padding) { nextX = padding; vx *= -0.5; }
+                if (nextY < padding) { nextY = padding; vy *= -0.5; }
+                if (nextX > window.innerWidth - panel.offsetWidth - padding) {
+                    nextX = window.innerWidth - panel.offsetWidth - padding;
+                    vx *= -0.5;
+                }
+                if (nextY > window.innerHeight - panel.offsetHeight - padding) {
+                    nextY = window.innerHeight - panel.offsetHeight - padding;
+                    vy *= -0.5;
+                }
+
+                panel.style.left = nextX + 'px';
+                panel.style.top = nextY + 'px';
+                panel.dataset.posX = nextX;
+                panel.dataset.posY = nextY;
+
+                rafId = requestAnimationFrame(physicsLoop);
+            } else {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+        };
+
+        header.onmousedown = (e) => {
+            isDragging = true;
+            if (rafId) cancelAnimationFrame(rafId);
+
+            panel.style.transition = 'transform 0.2s cubic-bezier(0.2, 0, 0.2, 1), opacity 0.3s ease';
+            panel.style.transform = 'scale(1.05) rotate(1deg)';
+            panel.style.opacity = '0.85';
+            header.style.cursor = 'grabbing';
+
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+
+            let offsetX = e.clientX - panel.offsetLeft;
+            let offsetY = e.clientY - panel.offsetTop;
+
+            const onMouseMove = (e) => {
+                vx = e.clientX - lastMouseX;
+                vy = e.clientY - lastMouseY;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+
+                let targetX = e.clientX - offsetX;
+                let targetY = e.clientY - offsetY;
+
+                // ЖЕСТКИЙ УДАР ОБ КРАЯ ПРИ ПЕРЕНОСЕ
+                const minX = 0;
+                const minY = 0;
+                const maxX = window.innerWidth - panel.offsetWidth;
+                const maxY = window.innerHeight - panel.offsetHeight;
+
+                // Ограничиваем координаты (Clamp)
+                if (targetX < minX) targetX = minX;
+                if (targetX > maxX) targetX = maxX;
+                if (targetY < minY) targetY = minY;
+                if (targetY > maxY) targetY = maxY;
+
+                panel.style.left = targetX + 'px';
+                panel.style.top = targetY + 'px';
+                panel.dataset.posX = targetX;
+                panel.dataset.posY = targetY;
+            };
+
+            const onMouseUp = () => {
+                isDragging = false;
+                panel.style.transform = 'scale(1) rotate(0deg)';
+                panel.style.opacity = '1';
+                header.style.cursor = 'grab';
+
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+
+                physicsLoop();
+            };
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        };
         return;
+    }
+
+    // Блок синхронизации с setInterval (чтобы не прыгало)
+    if (panel.dataset.posX && panel.dataset.posY) {
+        panel.style.left = panel.dataset.posX + 'px';
+        panel.style.top = panel.dataset.posY + 'px';
+        panel.style.right = 'auto';
     }
 
     panel.style.display = 'flex';
     const list = panel.querySelector('.draft-list');
-
-    // Берем черновики только для текущего ID
     const relevantDrafts = hwork_drafts[currentHwId] || [];
-
     const currentData = JSON.stringify(relevantDrafts);
+
     if (list.getAttribute('data-last') === currentData) return;
     list.setAttribute('data-last', currentData);
 
     if (relevantDrafts.length === 0) {
-        list.innerHTML = '<div style="padding:15px;font-size:11px;color:#555;text-align:center">Для этой домашки нет черновиков</div>';
+        list.innerHTML = '<div style="padding:15px;font-size:11px;color:#555;text-align:center">Черновиков нет</div>';
         return;
     }
 
@@ -4036,10 +4145,7 @@ function updateDraftsUI() {
     relevantDrafts.forEach(draft => {
         const el = document.createElement('div');
         el.className = 'draft-item';
-        el.innerHTML = `
-            <div>Черновик ${draft.time}</div>
-            <small>ID: ${draft.hwId} <span class="ans-glow">${draft.count} отв.</span></small>
-        `;
+        el.innerHTML = `<div>Черновик ${draft.time}</div><small><span class="ans-glow">${draft.count} отв.</span></small>`;
         el.onclick = () => restoreHworkDraft(draft);
         list.appendChild(el);
     });
