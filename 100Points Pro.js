@@ -2507,17 +2507,6 @@ body.is-dark-mode .custom-hw-count {
     z-index: 100 !important;
     position: relative !important;
 }
-
-/* ПАНЕЛЬ ВКЛАДОК (Уроки курса / Бустеры) */
-.TsqGd {
-    position: relative !important;
-    z-index: 10 !important; /* Низкий индекс, чтобы нырять под шапку */
-}
-
-/* Чтобы при скролле ничего не вылезало */
-.TsqGd[role="tablist"] {
-    isolation: isolate;
-}
     `);
 
     function updateThemeClass() {
