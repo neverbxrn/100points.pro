@@ -3238,18 +3238,17 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
         }
     }
 
-    function processVisuals(lesson) {
+function processVisuals(lesson) {
         const link = lesson.querySelector('a');
         const lessonId = link?.href.match(/lesson\/(\d+)/)?.[1];
 
-        // МГНОВЕННО получаем данные из нашего "вечного" кеша
         const lessonData = cache.get(lessonId);
         const progressBar = lesson.querySelector('.D0VIa');
         const p = progressBar ? (parseInt(progressBar.style.width) || 0) : 0;
 
         let finalColor = (settings.barStyle === 'dynamic')
-        ? getSmartColor(p)
-        : (p >= 90 ? '#00D05A' : p > 70 ? '#ADFF2F' : p > 30 ? '#FFA500' : '#FF4747');
+            ? getSmartColor(p)
+            : (p >= 90 ? '#00D05A' : p > 70 ? '#ADFF2F' : p > 30 ? '#FFA500' : '#FF4747');
 
         applyCardEffects(lesson, p, finalColor);
 
@@ -3260,81 +3259,61 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
             lesson.appendChild(pbBadge);
         }
 
-        pbBadge.className = 'custom-percent-badge';
-        pbBadge.style.display = 'none';
-
         let badgeText = '';
         let badgeColor = finalColor;
         let isUrgent = false;
 
-        // Если есть данные из кеша и урок не пройден полностью
-        // --- ПРИОРЕТЕТ ДЕДЛАЙНАМ ---
-        if (lessonData && p < 100) {
-            const { status, deadline, is_deadline_passed } = lessonData;
-            if (status === 'checking') {
-                // СОСТОЯНИЕ: На проверке
-                badgeText = '——';
-                badgeColor = '#FFA500'; // Оранжевый (неон)
-            }
-
-            else if (!is_deadline_passed && deadline && status !== 'passed') {
-                const parts = deadline.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-                if (parts) {
-                    const dDate = new Date(`${parts[3]}-${parts[2]}-${parts[1]}T23:59:59`);
-                    const diff = dDate - new Date();
-                    if (diff > 0) {
-                        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-                        const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-                        badgeText = `${d}д ${h}ч`;
-
-                        // ИСПРАВЛЕНИЕ: Если дедлайна больше 2 дней — СТРОГО фиолетовый.
-                        // Если меньше 2 дней — красный (срочно).
-                        isUrgent = (d < 2);
-                        badgeColor = isUrgent ? '#FF4747' : '#775AFA';
-                    }
+        // --- 1. ПРИОРЕТЕТ: СТАТУС "НА ПРОВЕРКЕ" ---
+        if (lessonData && lessonData.status === 'checking') {
+            badgeText = '——';
+            badgeColor = '#FFA500'; // Оранжевый неон
+        }
+        // --- 2. ДЕДЛАЙНЫ (Если они есть и актуальны) ---
+        else if (lessonData && !lessonData.is_deadline_passed && lessonData.deadline && lessonData.status !== 'passed') {
+            const parts = lessonData.deadline.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+            if (parts) {
+                const dDate = new Date(`${parts[3]}-${parts[2]}-${parts[1]}T23:59:59`);
+                const diff = dDate - new Date();
+                if (diff > 0) {
+                    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                    badgeText = `${d}д ${h}ч`;
+                    isUrgent = (d < 2);
+                    badgeColor = isUrgent ? '#FF4747' : '#775AFA';
                 }
-            }
-
-            // Если статус "not_started" и нет дедлайна (редкий случай)
-            if (!badgeText && status === 'not_started') {
-                badgeText = '——';
-                badgeColor = '#555555'; // Серый
             }
         }
 
-        // Если дедлайна нет или урок уже начат, показываем проценты (если они выше 0)
+        // --- 3. ПРОЦЕНТЫ (Если нет дедлайна, но есть прогресс) ---
         if (!badgeText && p > 0) {
             badgeText = p + '%';
             badgeColor = finalColor;
         }
 
-        if (badgeText) {
-            pbBadge.innerText = badgeText;
-            pbBadge.style.display = 'block';
-
-            // ОБНОВЛЯЕМ ЦВЕТОВУЮ ПЕРЕМЕННУЮ (для CSS)
-            pbBadge.style.setProperty('--card-color', badgeColor, 'important');
-
-            // Если выбран плоский стиль (flat), красим фон напрямую
-            if (!settings.badgeStyle || settings.badgeStyle === 'flat') {
-                pbBadge.style.setProperty('background', badgeColor, 'important');
-                pbBadge.style.setProperty('color', 'white', 'important');
-            }
-
-            // УПРАВЛЯЕМ КЛАССАМИ (не затирая их)
-            // Удаляем старые стили, если они были
-            const allStyles = ['badge-outline', 'badge-glass', 'badge-cyber', 'badge-minimal'];
-            pbBadge.classList.remove(...allStyles);
-
-            // Добавляем текущий стиль из настроек
-            if (settings.badgeStyle && settings.badgeStyle !== 'flat') {
-                pbBadge.classList.add('badge-' + settings.badgeStyle);
-            }
-
-            pbBadge.classList.toggle('deadline-urgent', isUrgent);
-        } else {
-            pbBadge.style.display = 'none';
+        // --- 4. ФИНАЛЬНЫЙ ФОЛЛБЕК (Для пустых случаев, как в твоем JSON) ---
+        if (!badgeText) {
+            badgeText = '——';
+            // Если дедлайна нет и статус "Нужно выполнить", делаем плашку нейтрально-серой
+            badgeColor = '#555555';
         }
+
+        // --- ОТРИСОВКА ---
+        pbBadge.innerText = badgeText;
+        pbBadge.style.display = 'block'; // Теперь всегда block
+        pbBadge.style.setProperty('--card-color', badgeColor, 'important');
+
+        // Стилизация
+        const allStyles = ['badge-outline', 'badge-glass', 'badge-cyber', 'badge-minimal'];
+        pbBadge.classList.remove(...allStyles);
+
+        if (settings.badgeStyle && settings.badgeStyle !== 'flat') {
+            pbBadge.classList.add('badge-' + settings.badgeStyle);
+        } else {
+            pbBadge.style.setProperty('background', badgeColor, 'important');
+            pbBadge.style.setProperty('color', 'white', 'important');
+        }
+
+        pbBadge.classList.toggle('deadline-urgent', isUrgent);
 
         if (progressBar) {
             progressBar.style.setProperty('background-color', finalColor, 'important');
@@ -3394,10 +3373,10 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
             // Сначала запускаем логику количества ДЗ — она теперь безусловная
             if (settings.showHwCount === true) processHomeworkCountLogic(lesson);
 
+            processVisuals(lesson);
+
             const badge = lesson.querySelector('.Rjxh7');
             if (!badge) return;
-
-            processVisuals(lesson);
 
             if (badge.classList.contains('Plz9L') && !badge.hasAttribute('data-checked')) return;
             processStatusLogic(lesson, badge);
