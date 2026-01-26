@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         100Points Pro: Ultimate Neon v7
+// @name         100Points Pro: Tweaks
 // @namespace    http://tampermonkey.net/
 // @version      7.0
-// @description  Тот самый визуал + Пост-процессинг прогресс-бара + Умный фильтр
+// @description  Твики для стобалльного
 // @author       bebebebebe
 // @match        https://lk.100points.ru/*
 // @grant        GM_xmlhttpRequest
