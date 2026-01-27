@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         100Points Pro: Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      7.2
+// @version      7.3
 // @description  Твики для стобалльного
 // @author       bebebebebe
 // @match        https://lk.100points.ru/*
@@ -1812,56 +1812,6 @@ mjx-assistive-mml {
     display: none !important;
 }
 
-/* ИСПРАВЛЕННАЯ ПОДЛОЖКА */
-._9kveE {
-    background: rgba(255, 255, 255, 0.7) !important;
-    backdrop-filter: blur(12px) !important;
-    border-radius: 30px !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
-
-    width: 95% !important;
-    max-width: 1100px !important;
-    margin: 20px auto !important;
-
-    padding: 15px !important; /* Увеличили отступ */
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    /* УБИРАЕМ overflow: hidden, чтобы кнопка не исчезала */
-    overflow: visible !important;
-    box-sizing: border-box !important;
-}
-
-
-/* Если включена темная тема на сайте */
-[data-theme='dark'] ._9kveE {
-    background: rgba(30, 30, 30, 0.7) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
-}
-
-/* 1. КРАСИВАЯ ПОДЛОЖКА (Только для цепочки) */
-._9kveE {
-    background: rgba(255, 255, 255, 0.7) !important;
-    backdrop-filter: blur(12px) !important;
-    border-radius: 30px !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
-
-    width: 95% !important;
-    max-width: 1100px !important;
-    margin: 20px auto !important;
-    padding: 15px !important;
-
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    /* УБИРАЕМ СКРЫТИЕ: чтобы все кнопки внутри были видны */
-    overflow: visible !important;
-    box-sizing: border-box !important;
-}
-
 /* 5. КНОПКА ЗАХВАТА ЗАДАЧИ (Обычно это стандартные кнопки сайта) */
 /* Если у кнопки захвата есть специфический класс, добавь его сюда.
    Пока делаем её видимой универсально внутри контейнера. */
@@ -1890,25 +1840,6 @@ mjx-assistive-mml {
     color: #000 !important;
     border: 3px solid #000 !important;
     background: #fff !important;
-}
-
-/* Основная подложка-капсула */
-._9kveE {
-    background: rgba(255, 255, 255, 0.7) !important;
-    backdrop-filter: blur(12px) !important;
-    border-radius: 32px !important; /* Сильное скругление, как ты просил */
-    border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
-
-    width: 95% !important;
-    max-width: 1100px !important;
-    margin: 20px auto !important;
-    padding: 15px 10px !important;
-
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    overflow: hidden !important; /* Чтобы ничего не вылетало за границы скругления */
 }
 
 /* Окно скролла (верхняя часть подложки) */
@@ -1960,17 +1891,23 @@ mjx-assistive-mml {
     opacity: 0.9 !important;
 }
 
-/* ГЛАВНАЯ ПОДЛОЖКА */
+/* ГЛАВНАЯ ПОДЛОЖКА (Стиль iOS 26 Glass) */
 ._9kveE {
     display: flex !important;
-    flex-direction: column !important; /* Задачи сверху, кнопка снизу */
-    align-items: center !important;    /* Центрирует всё по горизонтали */
+    flex-direction: column !important;
+    align-items: center !important;
 
-    background: rgba(255, 255, 255, 0.7) !important;
-    backdrop-filter: blur(12px) !important;
-    border-radius: 35px !important;    /* Скругление еще сильнее */
-    border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+    /* Стеклянный фон для светлой темы */
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(35px) saturate(180%) brightness(1.1) !important;
+    -webkit-backdrop-filter: blur(35px) saturate(180%) !important;
+
+    border-radius: 35px !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.4) !important;
+    /* Мягкая тень и внутренний блик на грани */
+    box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.3),
+        0 10px 30px rgba(0, 0, 0, 0.08) !important;
 
     width: 95% !important;
     max-width: 1100px !important;
@@ -1978,6 +1915,19 @@ mjx-assistive-mml {
     padding: 15px 0 !important;
     overflow: hidden !important;
     position: relative !important;
+}
+
+/* Если включена темная тема на сайте */
+[data-theme='dark'] ._9kveE {
+    /* Глубокое темное стекло для темной темы */
+    background: rgba(15, 15, 20, 0.6) !important;
+    backdrop-filter: blur(45px) saturate(190%) brightness(0.9) !important;
+    -webkit-backdrop-filter: blur(45px) saturate(190%) !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow:
+        inset 0 0.5px 0 rgba(255, 255, 255, 0.1),
+        0 15px 35px rgba(0, 0, 0, 0.5) !important;
 }
 
 /* КОНТЕЙНЕР СКРОЛЛА (Верхний ярус) */
@@ -2460,9 +2410,20 @@ body.is-dark-mode .custom-hw-count {
     min-height: 48px !important;
     padding: 0 20px !important;
     margin-bottom: 10px !important;
-    background-color: #1a1a1a !important; /* Темный нейтральный фон при скрытии */
+    background-color: #FFFAFA !important; /* Темный нейтральный фон при скрытии */
     border: 1px solid rgba(119, 90, 250, 0.3) !important;
     opacity: 0.8;
+}
+
+/* ЛОГИКА СВОРАЧИВАНИЯ БАННЕРА */
+body.is-dark-mode .pts-banner-checker:checked ~ .DmWLh {
+    max-height: 48px !important; /* Высота компактной плашки */
+    min-height: 48px !important;
+    padding: 0 20px !important;
+    margin-bottom: 10px !important;
+    background-color: #1a1a1a !important; /* Темный нейтральный фон при скрытии */
+    border: 1px solid rgba(119, 90, 250, 0.3) !important;
+    opacity: 0.1;
 }
 
 /* ПЛАВНОЕ ИСЧЕЗНОВЕНИЕ ВНУТРЕННОСТЕЙ */
@@ -2506,6 +2467,139 @@ body.is-dark-mode .custom-hw-count {
 .ntGcE {
     z-index: 100 !important;
     position: relative !important;
+}
+
+:root {
+    --m-x: 50%;
+    --m-y: 50%;
+}
+
+/* ГРУППА ФОНА: Чистый черный + "Дышащий" блик */
+body.is-dark-mode.use-shaders::before {
+    content: "";
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(
+        circle at var(--m-x) var(--m-y),
+        rgba(119, 90, 250, 0.1) 0%,
+        rgba(119, 90, 250, 0.06) 30%,
+        transparent 65%
+    );
+    z-index: -1;
+    pointer-events: none;
+    transition: background 1.2s cubic-bezier(0.2, 0, 0.3, 1);
+}
+
+/* Делаем все фоны прозрачными, чтобы видеть градиент сквойти них на чистый черный */
+body.is-dark-mode .qX71Q, .qX71Q[data-theme=dark],
+body.is-dark-mode .HcMYw, .HcMYw[data-theme=dark],
+body.is-dark-mode .EPKuk, .EPKuk[data-theme=dark],
+body.is-dark-mode .GoIVy, .GoIVy[data-theme=dark],
+body.is-dark-mode .kexbQ, body.is-dark-mode ._5JBVc,
+body.is-dark-mode .OjYDt, body.is-dark-mode .CWqZW,
+body.is-dark-mode .ReactMathJaxPreview {
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+/* Чистый черный цвет для самой подложки сайта */
+body.is-dark-mode {
+    background-color: #000000 !important;
+}
+
+/* ГРУППА СТЕКЛА: Сделал прозрачнее (0.3 вместо 0.6) */
+body.is-dark-mode .OIYut,
+body.is-dark-mode .dJ46J, body.is-dark-mode .rvN4s,
+body.is-dark-mode .TsqGd, .TsqGd[data-theme=dark],
+body.is-dark-mode .WDlvs, .dRHLa[data-theme=dark] {
+    background: rgba(10, 10, 12, 0.4) !important; /* Полупрозрачная тьма */
+    backdrop-filter: blur(40px) saturate(180%) brightness(0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Полностью черный фон body (чтобы не было белых вспышек) */
+body.is-dark-mode {
+    background-color: #000000 !important;
+}
+
+body.is-dark-mode::before {
+    display: none !important;
+}
+
+/* jrjMP без обводки и максимально чистый */
+body.is-dark-mode .jrjMP, .jrjMP[data-theme=dark] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(50px) saturate(200%) brightness(0.7) !important;
+}
+
+/* Основной контейнер карточки */
+body.is-dark-mode .UAktb[data-theme="dark"] {
+    --wrapper-course-bg: #00000000;
+    background: rgba(20, 20, 25, 0) !important; /* Очень темное стекло */
+    backdrop-filter: blur(25px) saturate(160%) brightness(0.9) !important;
+    -webkit-backdrop-filter: blur(25px) saturate(160%) !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 20px !important; /* Округляем для современного вида */
+
+    /* Тонкий блик сверху и мягкая тень */
+    box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.05),
+        0 8px 32px rgba(0, 0, 0, 0.4) !important;
+
+    overflow: hidden;
+}
+
+/* Эффект при наведении */
+body.is-dark-mode .UAktb[data-theme="dark"]:hover {
+    background: rgba(30, 30, 35, 0) !important;
+    border-color: rgba(119, 90, 250, 0.4) !important; /* Цвет границы становится фиолетовым */
+    transform: translateY(-4px);
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.6),
+        0 0 20px rgba(119, 90, 250, 0.15) !important; /* Мягкое фиолетовое сияние */
+}
+
+/* Стилизация прогресс-бара внутри стекла */
+body.is-dark-mode .bnDlE[data-theme="dark"] {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-radius: 10px !important;
+    padding: 8px !important;
+}
+
+body.is-dark-mode .DG6Jl {
+    background: rgba(255, 255, 255, 0.1) !important; /* Фон полоски */
+    height: 6px !important;
+    border-radius: 3px !important;
+}
+
+body.is-dark-mode .NUfp2 {
+    background: linear-gradient(90deg, #775AFA, #9d89ff) !important; /* Градиент прогресса */
+    box-shadow: 0 0 10px rgba(119, 90, 250, 0.5) !important;
+}
+
+/* Нижняя кнопка "Посмотреть" */
+body.is-dark-mode .yOmZn {
+    background: rgba(119, 90, 250, 0.1) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+    transition: background 0.3s ease !important;
+}
+
+body.is-dark-mode .yOmZn:hover {
+    background: rgba(119, 90, 250, 0.2) !important;
+}
+
+/* Текст заголовка */
+body.is-dark-mode .RQ3YX {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 500 !important;
+}
+
+body.is-dark-mode .MXtA_ {
+    --cardBodyBorder: #1e1e1f00;
 }
     `);
 
@@ -3099,6 +3193,12 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
                 <label>Кнопка закрытия чата (✕)</label>
                 <input type="checkbox" class="pts-checkbox" data-setting="showChatCloseBtn" ${settings.showChatCloseBtn ? 'checked' : ''}>
             </div>
+
+            <div class="menu-checkbox-section">
+    <label>У меня тянет Майнкрафт с шейдерами</label>
+    <input type="checkbox" class="pts-checkbox" data-setting="useShaders" ${settings.useShaders ? 'checked' : ''}>
+            </div>
+
             <div class="menu-checkbox-section">
                 <label>Убрать дрисню</label>
                 <input type="checkbox" class="pts-checkbox" data-setting="cleanMode" ${settings.cleanMode ? 'checked' : ''}>
@@ -4147,6 +4247,7 @@ function updateDraftsUI() {
         createMenu();
         updateDynamicStyles();
         updateThemeClass();
+
     };
 
     init();
@@ -4221,6 +4322,192 @@ function updateDraftsUI() {
         initDownloadButtons();
         initGlobalDownload();
     }, 800);
+
+function initWebGLBackground() {
+    const canvasId = 'webgl-canvas';
+    if (document.getElementById(canvasId)) return;
+
+    // НАСТРОЙКА ПРОИЗВОДИТЕЛЬНОСТИ
+    // 0.2 = рендерим всего 20% пикселей. Дым будет мягким, FPS взлетит.
+    const QUALITY_RATIO = 0.25;
+
+    const canvas = document.createElement('canvas');
+    canvas.id = canvasId;
+
+    // Стили для растягивания и плавности
+    Object.assign(canvas.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        zIndex: '-1',
+        pointerEvents: 'none',
+        opacity: '0',
+        transition: 'opacity 1.5s ease',
+        // Размываем пиксели при растягивании, чтобы не было "квадратиков"
+        filter: 'blur(15px)',
+        transform: 'translateZ(0)' // Форсируем GPU композицию
+    });
+    document.body.appendChild(canvas);
+
+    const gl = canvas.getContext('webgl', {
+        alpha: false, // Отключаем прозрачность канваса для скорости
+        antialias: false, // Выключаем сглаживание (не нужно для дыма)
+        depth: false, // Выключаем буфер глубины
+        preserveDrawingBuffer: false
+    });
+
+    if (!gl) return;
+
+    // Простой вершинный шейдер
+    const vertexSource = `
+        attribute vec2 position;
+        void main() {
+            gl_Position = vec4(position, 0.0, 1.0);
+        }
+    `;
+
+    // Оптимизированный фрагментный шейдер
+    const fragmentSource = `
+        precision mediump float; // Средняя точность (быстрее)
+        uniform float u_time;
+        uniform vec2 u_resolution;
+        uniform vec2 u_mouse;
+
+        void main() {
+            // Нормализация координат
+            vec2 st = gl_FragCoord.xy / u_resolution.xy;
+            st.x *= u_resolution.x / u_resolution.y;
+
+            // Замедленное время для плавности
+            float t = u_time * 0.15;
+
+            // Координаты для искажения
+            vec2 pos = st * 2.5;
+
+            // УПРОЩЕННЫЙ ЦИКЛ (было 4 итерации, стало 3 - прирост 25%)
+            for(float i = 1.0; i < 3.0; i++){
+                pos.x += 0.5 / i * sin(i * pos.y + t + 0.3 * i) + 0.5;
+                pos.y += 0.5 / i * cos(i * pos.x + t + 0.3 * i + 1.5);
+            }
+
+            // Твой цвет (#775AFA)
+            vec3 colorBase = vec3(0.46, 0.35, 0.98);
+
+            // Рисунок волн
+            float pattern = sin(pos.x + pos.y);
+
+            // Мягкое свечение (убрали тяжелый distance к мыши для фона)
+            float glow = smoothstep(0.3, 0.8, pattern);
+
+            // Добавляем легкую реакцию на мышь (оптимизированная)
+            vec2 mouseNorm = u_mouse / u_resolution;
+            float dist = distance(st, mouseNorm * vec2(u_resolution.x/u_resolution.y, 1.0));
+            // Свечение только рядом с курсором
+            glow += 0.2 / (dist * 10.0 + 0.5);
+
+            // Смешиваем с черным фоном
+            vec3 finalColor = mix(vec3(0.0), colorBase, glow * 0.5); // 0.5 - яркость
+
+            gl_FragColor = vec4(finalColor, 1.0);
+        }
+    `;
+
+    // Компиляция
+    function createShader(gl, type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            gl.deleteShader(shader);
+            return null;
+        }
+        return shader;
+    }
+
+    const program = gl.createProgram();
+    gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, vertexSource));
+    gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, fragmentSource));
+    gl.linkProgram(program);
+    gl.useProgram(program);
+
+    // Геометрия (Квадрат на весь экран)
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        -1, -1, 1, -1, -1, 1,
+        -1, 1, 1, -1, 1, 1,
+    ]), gl.STATIC_DRAW);
+
+    const positionLoc = gl.getAttribLocation(program, 'position');
+    gl.enableVertexAttribArray(positionLoc);
+    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+    const timeLoc = gl.getUniformLocation(program, 'u_time');
+    const resLoc = gl.getUniformLocation(program, 'u_resolution');
+    const mouseLoc = gl.getUniformLocation(program, 'u_mouse');
+
+    // Переменные состояния
+    let mouseX = 0, mouseY = 0;
+
+    window.addEventListener('mousemove', (e) => {
+        // Мышь тоже нормализуем под низкое разрешение
+        mouseX = e.clientX * QUALITY_RATIO;
+        mouseY = (window.innerHeight - e.clientY) * QUALITY_RATIO;
+    }, {passive: true});
+
+    function resize() {
+        // Ставим внутреннее разрешение канваса меньше реального
+        const displayWidth = window.innerWidth * QUALITY_RATIO;
+        const displayHeight = window.innerHeight * QUALITY_RATIO;
+
+        if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+            canvas.width = displayWidth;
+            canvas.height = displayHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+    }
+
+    let checkTimeout = null;
+
+    function render(time) {
+        const isDark = document.body.classList.contains('is-dark-mode');
+        const isActive = settings && settings.useShaders;
+
+        if (isDark && isActive) {
+            // Убираем таймаут, если проснулись раньше 2 секунд
+            if (checkTimeout) {
+                clearTimeout(checkTimeout);
+                checkTimeout = null;
+            }
+
+            canvas.style.opacity = '1';
+            resize();
+
+            gl.uniform1f(timeLoc, time * 0.001);
+            gl.uniform2f(resLoc, canvas.width, canvas.height);
+            gl.uniform2f(mouseLoc, mouseX, mouseY);
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+            requestAnimationFrame(render);
+        } else {
+            canvas.style.opacity = '0';
+
+            if (checkTimeout) clearTimeout(checkTimeout);
+
+            checkTimeout = setTimeout(() => {
+                requestAnimationFrame(render);
+            }, 2000);
+        }
+    }
+
+    requestAnimationFrame(render);
+}
+
+    // ВЫЗОВИ ЭТО ОДИН РАЗ ПОСЛЕ ЗАГРУЗКИ
+    initWebGLBackground();
 
     async function checkForUpdates() {
         // Автоматически берем версию из метаданных скрипта
