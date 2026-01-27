@@ -350,7 +350,8 @@ async function restoreHworkDraft(draft) {
 
     const cardStyles = [
         // --- КЛАССИКА И МИНИМАЛИЗМ ---
-        { id: 'pure-white', name: 'Чистый белый' },           // Без границ, только мягкая тень
+        { id: 'pure-white', name: 'Чистый белый' },
+        { id: 'glass-deep', name: 'Глубокое стекло (WebGL-ready)' },
         { id: 'border-thin', name: 'Тонкий контур' },         // Едва заметная серая граница
         { id: 'soft-blue', name: 'Небесный софт' },           // Очень бледный голубой фон
         { id: 'paper-texture', name: 'Лист бумаги' },         // Эффект наслоения
@@ -663,13 +664,20 @@ body.is-dark-mode .NUfp2 {
             backdrop-filter: blur(10px);
         }
 
-        /* Сама карточка урока */
-        body.is-dark-mode .mUkKn {
-            background: #0d0d14 !important;
-            border: 1px solid rgba(255, 255, 255, 0.05) !important;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
-            position: relative;
-        }
+/* Сама карточка урока (базовая темная тема) */
+/* Мы добавляем условие, чтобы если выбрано "стекло", применялись его параметры */
+body.is-dark-mode .mUkKn {
+    background: #0d0d14; /* Дефолтный непрозрачный фон */
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease !important;
+}
+
+/* Если выбрано "стекло", принудительно делаем фон прозрачным поверх всех правил */
+body.is-dark-mode[data-card-style="glass-deep"] .mUkKn,
+body.is-dark-mode .mUkKn[style*="glass-deep"] {
+    background: rgba(10, 10, 15, 0.4) !important;
+}
 
         /* Заголовок или основной текст внутри карточки */
         body.is-dark-mode .mUkKn .eBD_9 {
@@ -2952,6 +2960,25 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
         // --- 5. ТВОИ 20 СТИЛЕЙ КАРТОЧЕК ---
         switch (settings.cardStyle) {
             case 'pure-white': css += `.mUkKn { background: #fff !important; border: none !important; box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important; }`; break;
+            case 'glass-deep':
+                css += `
+        .mUkKn {
+            background: rgba(255, 255, 255, 0.6) !important;
+            backdrop-filter: blur(20px) saturate(160%) !important;
+            -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.4) !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05) !important;
+        }
+        /* Глобальное перекрытие для темной темы при выбранном стиле Glass Deep */
+        body.is-dark-mode .mUkKn {
+            background: rgba(15, 15, 20, 0.4) !important; /* Прозрачность для WebGL */
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.05) !important;
+        }
+    `;
+                break;
+
             case 'border-thin':
                 css += `.mUkKn { background: #fff !important; border: 1.5px solid #f0f0f5 !important; box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important; }`;
                 break;
