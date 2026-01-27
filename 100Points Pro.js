@@ -3154,7 +3154,7 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
 
         <div class="menu-section">
             <label>Размер кнопок номеров: <span id="task-size-val">${settings.taskBtnSize || 40}</span>px</label>
-            <input type="range" class="pts-range" data-setting="taskBtnSize" min="25" max="60" value="${settings.taskBtnSize || 40}">
+            <input type="range" class="pts-range" data-setting="taskBtnSize" min="25" max="120" value="${settings.taskBtnSize || 40}">
         </div>
 
         <div class="menu-section">
