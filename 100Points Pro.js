@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         100Points Pro: Tweaks
 // @namespace    http://tampermonkey.net/
-// @version      7.3
+// @version      7.4
 // @description  Твики для стобалльного
 // @author       bebebebebe
 // @match        https://lk.100points.ru/*
@@ -25,6 +25,50 @@
         }
     };
 
+    function populateCacheFromListing(lessons) {
+        lessons.forEach(lesson => {
+            const lid = String(lesson.id);
+            const existing = cache.get(lid) || {};
+
+            // Статус урока
+            const sv = lesson.lesson_status?.value;
+            existing.status = sv === 'passed' ? 'passed'
+            : sv === 'checking' ? 'checking'
+            : 'studying';
+
+            // Дедлайн — прямо из листинга ("01.05.2026 23:59")
+            if (lesson.deadline) {
+                existing.deadline = lesson.deadline;
+                const parts = lesson.deadline.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+                existing.is_deadline_passed = parts
+                    ? new Date(`${parts[3]}-${parts[2]}-${parts[1]}T23:59:59`) < new Date()
+                : false;
+            } else {
+                // Не перезаписываем если уже есть от /personal
+                if (existing.deadline === undefined) existing.deadline = null;
+                if (existing.is_deadline_passed === undefined) existing.is_deadline_passed = false;
+            }
+
+            // Количество заданий ДЗ
+            // стало — записываем только если ещё не заполнено из более точного источника:
+            if (lesson.first_homework?.tasks_count !== undefined) {
+                existing.hwCount = existing.hwCount ?? lesson.first_homework.tasks_count;
+            }
+            // Также кешируем дедлайн из листинга — он здесь точно есть
+            if (lesson.deadline) {
+                existing.deadline = lesson.deadline;
+                const p = lesson.deadline.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+                if (p) {
+                    existing.is_deadline_passed =
+                        new Date(`${p[3]}-${p[2]}-${p[1]}T23:59:59`) < new Date();
+                }
+            }
+
+            cache.set(lid, existing);
+        });
+        console.log(`%c[Cache] Листинг: ${lessons.length} уроков`, 'color:#00ffaa; font-weight:bold');
+    }
+
     // Глобальное хранилище данных таймера
     window.MY_TIMER_DATA = {
         endTime: null,
@@ -35,11 +79,27 @@
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
         const response = await originalFetch(...args);
-        const url = args[0];
-        if (typeof url === 'string' && url.includes('/main')) {
-            const clone = response.clone();
-            clone.json().then(data => handleCapturedData(data, url));
+        const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
+
+        if (url.includes('/main')) {
+            response.clone().json()
+                .then(data => handleCapturedData(data, url))
+                .catch(() => {});
         }
+
+        // Перехватываем листинг уроков — читаем deadline и tasks_count напрямую
+        if (url.includes('api.100points.ru') &&
+            !url.includes('/personal') &&
+            !url.includes('/questionsBy') &&
+            !url.includes('/save') &&
+            !url.includes('/main')) {
+            response.clone().json().then(data => {
+                if (data && Array.isArray(data.lessons) && data.lessons.length > 0) {
+                    populateCacheFromListing(data.lessons);
+                }
+            }).catch(() => {});
+        }
+
         return response;
     };
 
@@ -2778,11 +2838,17 @@ function fetchRealStatus(lessonId, badge, lessonNode) {
                     status = allDone ? 'passed' : 'studying';
                 }
 
+                // tasks_count из листинга надёжнее, чем длина difficulties
+                const existingCached = cache.get(lessonId) || {};
+                const hwCount = difficulties.length > 0
+                ? difficulties.length
+                : (existingCached.hwCount ?? 0);  // сохраняем то, что закешировал листинг
+
                 cache.set(lessonId, {
                     status,
                     deadline,
                     is_deadline_passed: isPassed,
-                    hwCount: difficulties.length
+                    hwCount
                 });
 
                 // Находим актуальный бейдж
@@ -3387,17 +3453,29 @@ function processVisuals(lesson) {
     }
 
     // --- 2. ВТОРОЙ ПРИОРЕТЕТ: ДЕДЛАЙНЫ (только если нет прогресс-бара) ---
-    else if (lessonData && !lessonData.is_deadline_passed && lessonData.deadline) {
-        const parts = lessonData.deadline.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-        if (parts) {
-            const dDate = new Date(`${parts[3]}-${parts[2]}-${parts[1]}T23:59:59`);
-            const diff = dDate - new Date();
-            if (diff > 0) {
-                const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-                const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-                badgeText = `${d}д ${h}ч`;
-                isUrgent = (d < 2);
-                badgeColor = isUrgent ? '#FF4747' : '#775AFA';
+    else if (!hasProgressBar) {
+        // Сначала пробуем взять дедлайн прямо из DOM — сайт его уже отрисовал
+        const statusSpan = lesson.querySelector('.Rjxh7 span');
+        const statusText = statusSpan?.innerText || '';
+        const domMatch = statusText.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+
+        // Если в DOM нет — пробуем кеш
+        const deadlineStr = domMatch
+        ? `${domMatch[1]}.${domMatch[2]}.${domMatch[3]}`
+        : (lessonData?.deadline || null);
+
+        if (deadlineStr) {
+            const parts = deadlineStr.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+            if (parts) {
+                const dDate = new Date(`${parts[3]}-${parts[2]}-${parts[1]}T23:59:59`);
+                const diff = dDate - new Date();
+                if (diff > 0) {
+                    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                    badgeText = `${d}д ${h}ч`;
+                    isUrgent = (d < 2);
+                    badgeColor = isUrgent ? '#FF4747' : '#775AFA';
+                }
             }
         }
     }
@@ -3487,12 +3565,21 @@ function processVisuals(lesson) {
         // --- ОБРАБОТКА УРОКОВ ---
         document.querySelectorAll('.mUkKn').forEach(lesson => {
             // Сначала запускаем логику количества ДЗ — она теперь безусловная
-            if (settings.showHwCount === true) processHomeworkCountLogic(lesson);
+            if (settings.showHwCount !== false) processHomeworkCountLogic(lesson);
 
             processVisuals(lesson);
 
             const badge = lesson.querySelector('.Rjxh7');
-            if (!badge) return;
+            if (!badge) {
+                // Баджика нет, но кеш нужен для дедлайнов
+                const link = lesson.querySelector('a');
+                const lid = link?.href.match(/lesson\/(\d+)/)?.[1];
+                if (lid && !lesson.hasAttribute('data-api-synced') && !cache.get(lid)?.deadline) {
+                    lesson.setAttribute('data-api-synced', 'true');
+                    fetchRealStatus(lid, null, lesson);
+                }
+                return;
+            }
 
             if (badge.classList.contains('Plz9L') && !badge.hasAttribute('data-checked')) return;
             processStatusLogic(lesson, badge);
